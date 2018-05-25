@@ -145,7 +145,7 @@
 
     - name: Clone git repo
       git:
-        repo: 'https://foosball.example.org/path/to/repo.git'
+        repo: github.com/chirauki/paas-environment
         dest: /root/paas-environment
         version: master
 
