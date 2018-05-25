@@ -1,0 +1,154 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: False
+  vars:
+    ssh_key_name: mcirauqui
+    vpc_name: ansible_paas_vpc
+    vpc_cidr: 172.16.0.0/16
+    vpc_region: eu-central-1
+    public_subnet_cidr: 172.16.10.0/24
+    internal_networks:
+      db: 172.16.20.0/24
+      api_rs: 172.16.30.0/24
+    bastion_image_id: ami-43eec3a8
+    bastion_instance_type: t2.medium
+
+  tasks:
+    - name: Create VPC
+      ec2_vpc_net:
+        name: "{{ vpc_name }}"
+        cidr_block: "{{ vpc_cidr }}"
+        region: "{{ vpc_region }}"
+      register: vpc
+
+    - name: Create VPC public subnet
+      ec2_vpc_subnet:
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ vpc_region }}"
+        cidr: "{{ public_subnet_cidr }}"
+        resource_tags:
+          Name: public_subnet
+      register: public_subnet
+
+    - name: Create IGW
+      ec2_vpc_igw:
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ vpc_region }}"
+      register: igw
+
+    - name: Create public route table
+      ec2_vpc_route_table:
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ vpc_region }}"
+        tags:
+          Name: public_net_rt
+        subnets:
+          - "{{ public_subnet.subnet.id }}"
+        routes:
+          - dest: 0.0.0.0/0
+            gateway_id: "{{ igw.gateway_id }}"
+      register: public_route_table
+
+    - name: Create private networks
+      ec2_vpc_subnet:
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ vpc_region }}"
+        cidr: "{{ item.value }}"
+        resource_tags:
+          Name: "{{ item.key }}_subnet"
+      register: internal_subnets
+      with_dict: "{{ internal_networks }}"
+
+    - name: Create NAT GW
+      ec2_vpc_nat_gateway:
+        subnet_id: "{{ public_subnet.subnet.id }}"
+        region: "{{ vpc_region }}"
+        # client_token: abcd-12345678
+        wait: yes
+        if_exist_do_not_create: true
+      register: nat_gateway
+
+    - name: Build Subnet list
+      set_fact:
+        private_net_ids: "{{ internal_subnets.results|map(attribute='subnet.id')|list }}"
+
+    - name: Create NAT route table
+      ec2_vpc_route_table:
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ vpc_region }}"
+        tags:
+          Name: nat_rt
+        subnets: "{{ private_net_ids }}"
+        routes:
+          - dest: 0.0.0.0/0
+            gateway_id: "{{ nat_gateway.nat_gateway_id }}"
+      register: nat_route_table
+
+    - name: Create management security group
+      ec2_group:
+        name: management
+        description: management security group
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ vpc_region }}"
+        rules:
+          - proto: tcp
+            ports:
+            - 22
+            cidr_ip: 0.0.0.0/0
+            rule_desc: allow all on port 22
+
+    - name: Deploy bastion VM
+      ec2:
+        key_name: "{{ ssh_key_name }}"
+        instance_type: "{{ bastion_instance_type }}"
+        image: "{{ bastion_image_id }}"
+        wait: yes
+        group: management
+        vpc_subnet_id: "{{ public_subnet.subnet.id }}"
+        region: "{{ vpc_region }}"
+        assign_public_ip: yes
+        count_tag:
+          Name: bastion
+        exact_count: 1
+        instance_tags:
+          Name: bastion
+      register: bastion
+
+    - name: Address of the bastion host
+      debug:
+        msg: "{{ bastion.tagged_instances[0].public_dns_name }} ({{ bastion.tagged_instances[0].public_ip }})"
+
+    - name: Add new instance to host group
+      add_host:
+        hostname: "{{ bastion.tagged_instances[0].public_ip }}"
+        groupname: management-bastion
+        ansible_ssh_user: ec2-user
+        ansible_become: yes
+
+    - name: Wait for SSH to come up
+      wait_for:
+        host: "{{ bastion.tagged_instances[0].public_dns_name }}"
+        port: 22
+        delay: 60
+        timeout: 320
+        state: started
+
+- hosts: management-bastion
+  tasks:
+    - name: Install git
+      yum: name={{ item }} state=present
+      with_items:
+        - git
+        - python
+        - python-pip
+
+    - name: Clone git repo
+      git:
+        repo: 'https://foosball.example.org/path/to/repo.git'
+        dest: /root/paas-environment
+        version: master
+
+    - name: Install requirements
+      pip:
+        requirements: /root/paas-environment/requirements.txt
