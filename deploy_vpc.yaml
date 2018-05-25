@@ -145,7 +145,7 @@
 
     - name: Clone git repo
       git:
-        repo: github.com/chirauki/paas-environment
+        repo: https://github.com/chirauki/paas-environment.git
         dest: /root/paas-environment
         version: master
 
