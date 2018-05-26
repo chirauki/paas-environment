@@ -130,7 +130,7 @@
       wait_for:
         host: "{{ bastion.tagged_instances[0].public_dns_name }}"
         port: 22
-        delay: 60
+        delay: 10
         timeout: 320
         state: started
 
