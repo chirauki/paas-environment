@@ -1,3 +1,4 @@
+---
 - name: Install RabbitMQ Package
   yum: name=rabbitmq-server state=present
 
@@ -29,46 +30,7 @@
     tags:
       ha-mode: all
 
-- name: Add user abiquo
-  rabbitmq_user:
-    name: abiquo
-    force: yes
-    password: abiquo
-    vhost: /
-    read_priv: .*
-    write_priv: .*
-    configure_priv: .*
-    state: present
-    tags: administrator
-  when: "'services-master' in group_names"
-
-- name: Remove user guest
-  rabbitmq_user:
-    name: guest
-    force: yes
-    state: absent
-  when: "'services-master' in group_names"
-
-
-- name: Get master ready
-  command: /bin/true
-  when: "'services-master' in group_names"
-  register: master_ready
-
-- name: stop rabbitmq app
-  shell: rabbitmqctl stop_app
-  when:
-    - "'services-slaves' in group_names"
-    - master_ready is defined
-
-- name: join rabbitmq cluster
-  shell: rabbitmqctl join_cluster rabbit@{{ hostvars[groups['services-master'][0]]['ansible_hostname'] }}
-  when:
-    - "'services-slaves' in group_names"
-    - master_ready is defined
-
-- name: start rabbitmq app
-  shell: rabbitmqctl start_app
-  when:
-    - "'services-slaves' in group_names"
-    - master_ready is defined
+- name: Enables the rabbitmq_management plugin
+  rabbitmq_plugin:
+    names: rabbitmq_management
+    state: enabled

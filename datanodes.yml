@@ -1,35 +1,39 @@
 ---
-- hosts: datanodes
+- hosts: datanodes[0]
   become: true
   roles:
     - common
     - rabbitmq
 
   tasks:
-    block:
-      - name: Add user abiquo
-        rabbitmq_user:
-          name: abiquo
-          force: yes
-          password: abiquo
-          vhost: /
-          read_priv: .*
-          write_priv: .*
-          configure_priv: .*
-          state: present
-          tags: administrator
-      - name: Remove user guest
-        rabbitmq_user:
-          name: guest
-          force: yes
-          state: absent
-    when: groups['datanodes'][0]]['ansible_hostname'] == ansible_hostname
+    - name: Add user abiquo
+      rabbitmq_user:
+        name: abiquo
+        force: yes
+        password: abiquo
+        vhost: /
+        read_priv: .*
+        write_priv: .*
+        configure_priv: .*
+        state: present
+        tags: administrator
+    - name: Remove user guest
+      rabbitmq_user:
+        name: guest
+        force: yes
+        state: absent
 
-    block:
-      - name: stop rabbitmq app
-        shell: rabbitmqctl stop_app
-      - name: join rabbitmq cluster
-        shell: rabbitmqctl join_cluster rabbit@{{ hostvars[groups['datanodes'][0]]['ansible_hostname'] }}
-      - name: start rabbitmq app
-        shell: rabbitmqctl start_app
-    when: groups['datanodes'][0]]['ansible_hostname'] != ansible_hostname
+- hosts: datanodes[1:]
+  become: true
+  roles:
+    - common
+    - rabbitmq
+
+  tasks:
+    - name: stop rabbitmq app
+      shell: rabbitmqctl stop_app
+    - name: join rabbitmq cluster
+      shell: rabbitmqctl join_cluster rabbit@{{ hostvars[groups['datanodes'][0]]['ansible_hostname'] }}
+    - name: start rabbitmq app
+      shell: rabbitmqctl start_app
+

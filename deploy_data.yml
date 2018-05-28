@@ -35,20 +35,25 @@
     - name: Create Data node security group
       ec2_group:
         name: datanode
-        description: management security group
+        description: Data node access SG
         vpc_id: "{{ vpc.vpc.id }}"
         region: "{{ vpc_region }}"
         rules:
           - proto: tcp
             ports:
-            - 22
+              - 22
             group_name: management
             rule_desc: allow all on port 22
           - proto: tcp
             ports:
-            - 3306
-            cidr: "{{ internal_networks.api_rs }}"
-            rule_desc: MySQL access
+              - 15672
+            group_name: management
+            rule_desc: RabbitMQ management
+          - proto: tcp
+            from_port: 1
+            to_port: 65535
+            group_name: datanode
+            rule_desc: Allow access from any other datanode
 
     - set_fact:
         db_net: "{{ (internal_subnets.results|selectattr('item.key', 'match', 'db')|list)[0] }}"

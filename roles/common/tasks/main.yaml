@@ -1,10 +1,8 @@
 ---
-# tasks/hosts.yml
 - name: Generate /etc/hosts file
   template:
     src=etc/hosts.j2
     dest=/etc/hosts
-
 
 - name: Create Base Repo
   yum_repository:
