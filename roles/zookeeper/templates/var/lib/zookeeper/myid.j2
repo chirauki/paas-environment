@@ -1,0 +1,5 @@
+{% for item in ansible_play_batch %}
+{% if ansible_default_ipv4.address == hostvars[item].ansible_default_ipv4.address %}
+{{ loop.index }}
+{% endif %}
+{% endfor %}

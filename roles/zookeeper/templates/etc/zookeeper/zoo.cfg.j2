@@ -1,0 +1,16 @@
+tickTime=2000
+initLimit=10
+syncLimit=5
+dataDir=/var/lib/zookeeper
+clientPort=2181
+syncLimit=2
+
+{% for item in ansible_play_batch %}
+server.{{ loop.index }}={{ hostvars[item].ansible_default_ipv4.address }}:2888:3888
+{% endfor %}
+
+{% for item in ansible_play_batch %}
+{% if ansible_default_ipv4.address == hostvars[item].ansible_default_ipv4.address %}
+{{ loop.index }}
+{% endif %}
+{% endfor %}

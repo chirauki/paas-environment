@@ -1,0 +1,32 @@
+  - name: Install Redis Package
+    yum: name=redis state=present
+
+  # Example that prints the loopback address and gateway for each host
+  - debug:
+      #msg: "Master would be...{{ groups['mainnodes'] | map('extract', hostvars, ['ansible_eth0', 'ipv4', 'address']) | join(',') }}"
+      msg: "Master would be...{{ hostvars[groups['services-master'][0]]['ansible_default_ipv4']['address'] }}"
+
+  - name: Apply redis.conf master template
+    template: src=etc/redis.conf.j2 dest=/etc/redis.conf
+    notify: restart redis
+    when: "'services-master' in group_names"
+
+  - name: Get master ready
+    command: /bin/true
+    when: "'services-master' in group_names"
+
+  - meta: flush_handlers
+
+  - name: Wait for redis to be up
+    wait_for:
+      host: '{{ ansible_default_ipv4.address }}'
+      port: 6379
+      delay: 5
+      timeout: 60
+    when: "'services-master' in group_names"
+
+  - name: Apply redis.conf slave template
+    template: src=etc/redis-slave.conf.j2 dest=/etc/redis.conf
+    notify: restart redis
+    when:
+      - "'services-slaves' in group_names"
