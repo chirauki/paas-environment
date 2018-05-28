@@ -8,6 +8,7 @@
     - rabbitmq
     - zookeeper
     - redis
+    - redis-sentinel
 
   tasks:
     - name: Add user abiquo
@@ -35,7 +36,8 @@
     - common
     - rabbitmq
     - zookeeper
-    - redis-slave
+    - redis
+    - redis-sentinel
 
   tasks:
     - set_fact:
