@@ -4,11 +4,6 @@
     - zookeeper
     - jdk
 
-# Example that prints the loopback address and gateway for each host
-#  - debug:
-#    #msg: "Master would be...{{ groups['mainnodes'] | map('extract', hostvars, ['ansible_eth0', 'ipv4', 'address']) | join(',') }}"
-#      msg: "Master would be...{{ hostvars[groups['services-master'][0]]['ansible_default_ipv4']['address'] }}"
-
 - name: Apply zookeeper.cfg template
   template: src=etc/zookeeper/zoo.cfg.j2 dest=/etc/zookeeper/zoo.cfg
 

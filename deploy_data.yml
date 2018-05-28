@@ -50,6 +50,11 @@
             group_name: management
             rule_desc: RabbitMQ management
           - proto: tcp
+            ports:
+              - 2181
+            group_name: management
+            rule_desc: RabbitMQ management
+          - proto: tcp
             from_port: 1
             to_port: 65535
             group_name: datanode

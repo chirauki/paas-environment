@@ -2,7 +2,7 @@ port 26379
 bind {{ ansible_default_ipv4.address }}
 logfile "/var/log/redis/sentinel.log"
 dir "/tmp"
-sentinel monitor mymaster {{ hostvars[groups['services-master'][0]]['ansible_default_ipv4']['address'] }}  6379 2
+sentinel monitor mymaster {{ hostvars[groups['datanodes'][0]]['ansible_default_ipv4']['address'] }}  6379 2
 sentinel down-after-milliseconds mymaster 2000
 sentinel failover-timeout mymaster 10000
 supervised systemd

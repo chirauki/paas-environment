@@ -4,6 +4,8 @@
   roles:
     - common
     - rabbitmq
+    - zookeeper
+    - redis
 
   tasks:
     - name: Add user abiquo
@@ -28,6 +30,8 @@
   roles:
     - common
     - rabbitmq
+    - zookeeper
+    - redis-slave
 
   tasks:
     - name: stop rabbitmq app
