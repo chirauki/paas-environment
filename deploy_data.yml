@@ -53,9 +53,6 @@
     - set_fact:
         db_net: "{{ (internal_subnets.results|selectattr('item.key', 'match', 'db')|list)[0] }}"
 
-    - debug:
-        msg: "{{ db_net }}"
-
     - name: Deploy Data nodes VM
       ec2:
         key_name: "{{ ssh_key_name }}"
@@ -67,9 +64,9 @@
         region: "{{ vpc_region }}"
         exact_count: "{{ data_count }}"
         count_tag:
-          datanode: yes
+          type: datanode
         instance_tags:
-          datanode: yes
+          type: datanode
       register: datanodes
 
     - name: Address of the data nodes
