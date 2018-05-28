@@ -1,5 +1,5 @@
-{% for item in ansible_play_batch %}
-{% if ansible_default_ipv4.address == hostvars[item].ansible_default_ipv4.address %}
+{% for item in groups['datanodes'] %}
+{% if ansible_default_ipv4.address == item %}
 {{ loop.index }}
 {% endif %}
 {% endfor %}

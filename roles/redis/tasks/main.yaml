@@ -3,17 +3,17 @@
   yum: name=redis state=present
 
 - debug:
-    msg: "Master would be...{{ hostvars[groups['datanodes'][0]]['ansible_default_ipv4']['address'] }}"
+    msg: "Master would be... {{ cluster_master_address }}"
 
 - name: Apply redis.conf master template
   template: src=etc/redis.conf.j2 dest=/etc/redis.conf
   notify: restart redis
-  when: hostvars[groups['datanodes'][0]]['ansible_default_ipv4']['address'] == ansible_default_ipv4.address
+  when: cluster_master_address == ansible_default_ipv4.address
 
 - name: Apply redis.conf slave template
   template: src=etc/redis-slave.conf.j2 dest=/etc/redis.conf
   notify: restart redis
-  when: hostvars[groups['datanodes'][0]]['ansible_default_ipv4']['address'] == ansible_default_ipv4.address
+  when: cluster_master_address != ansible_default_ipv4.address
 
 - meta: flush_handlers
 

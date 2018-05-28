@@ -49,4 +49,4 @@ client-output-buffer-limit pubsub 32mb 8mb 60
 hz 10
 aof-rewrite-incremental-fsync yes
 
-slaveof {{ hostvars[groups['datanodes'][0]]['ansible_default_ipv4']['address'] }} 6379
+slaveof {{ cluster_master_address }} 6379

@@ -1,6 +1,6 @@
 ---
 - debug:
-    msg: "Master would be...{{ hostvars[groups['datanodes'][0]]['ansible_default_ipv4']['address'] }}"
+    msg: "Master would be... {{ cluster_master_address }}"
 
 - name: Apply redis-sentinel.conf template
   template: src=redis-sentinel.conf.j2 dest=/etc/redis-sentinel.conf

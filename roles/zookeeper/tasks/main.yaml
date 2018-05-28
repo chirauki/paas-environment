@@ -10,3 +10,6 @@
 - name: Apply my.id template
   template: src=var/lib/zookeeper/myid.j2 dest=/var/lib/zookeeper/myid
   notify: restart zookeeper
+
+- name: Start ZooKeeper
+  service: name=zookeeper state=started enabled=yes

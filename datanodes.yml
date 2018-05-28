@@ -1,6 +1,8 @@
 ---
 - hosts: datanodes[0]
   become: true
+  vars:
+    rabbitmq_erlang_cookie: OIZEBMCJICBLKMOMYJUX
   roles:
     - common
     - rabbitmq
@@ -27,6 +29,8 @@
 
 - hosts: datanodes[1:]
   become: true
+  vars:
+    rabbitmq_erlang_cookie: OIZEBMCJICBLKMOMYJUX
   roles:
     - common
     - rabbitmq
@@ -34,10 +38,12 @@
     - redis-slave
 
   tasks:
+    - set_fact:
+        cluster_master_address: "{{ hostvars[groups['datanodes'][0]]['ansible_default_ipv4']['address'] }}"
     - name: stop rabbitmq app
       shell: rabbitmqctl stop_app
     - name: join rabbitmq cluster
-      shell: rabbitmqctl join_cluster rabbit@{{ hostvars[groups['datanodes'][0]]['ansible_hostname'] }}
+      shell: rabbitmqctl join_cluster rabbit@{{ cluster_master_address }}
     - name: start rabbitmq app
       shell: rabbitmqctl start_app
 
