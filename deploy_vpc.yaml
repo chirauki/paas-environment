@@ -136,6 +136,12 @@
 
 - hosts: management-bastion
   tasks:
+    - name: Setup sudo
+      lineinfile:
+        path: /etc/sudoers
+        state: absent
+        regexp: '^Defaults    env_reset$'
+
     - name: Install git
       yum: name={{ item }} state=present
       with_items:
@@ -146,9 +152,16 @@
     - name: Clone git repo
       git:
         repo: https://github.com/chirauki/paas-environment.git
-        dest: /root/paas-environment
+        dest: /home/ec2-user/paas-environment
         version: master
+
+    - name: Fix permissions
+      file:
+        path: /home/ec2-user/paas-environment
+        owner: ec2-user
+        group: ec2-user
+        recurse: yes
 
     - name: Install requirements
       pip:
-        requirements: /root/paas-environment/requirements.txt
+        requirements: /home/ec2-user/paas-environment/requirements.txt
