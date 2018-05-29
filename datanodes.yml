@@ -1,10 +1,16 @@
 ---
-- hosts: datanodes[0]
-  become: true
-  vars:
-    rabbitmq_erlang_cookie: OIZEBMCJICBLKMOMYJUX
+- hosts: datanodes
+  become: yes
   roles:
     - common
+
+- hosts: datanodes[0]
+  become: yes
+  vars:
+    rabbitmq_erlang_cookie: OIZEBMCJICBLKMOMYJUX
+    cluster_master_address: "{{ ansible_default_ipv4.address }}"
+
+  roles:
     - rabbitmq
     - zookeeper
     - redis
@@ -32,20 +38,18 @@
   become: true
   vars:
     rabbitmq_erlang_cookie: OIZEBMCJICBLKMOMYJUX
+    cluster_master_address: "{{ hostvars[groups['datanodes'][0]]['ansible_default_ipv4']['address'] }}"
+
   roles:
-    - common
     - rabbitmq
     - zookeeper
     - redis
     - redis-sentinel
 
   tasks:
-    - set_fact:
-        cluster_master_address: "{{ hostvars[groups['datanodes'][0]]['ansible_default_ipv4']['address'] }}"
     - name: stop rabbitmq app
       shell: rabbitmqctl stop_app
     - name: join rabbitmq cluster
-      shell: rabbitmqctl join_cluster rabbit@{{ cluster_master_address }}
+      shell: rabbitmqctl join_cluster rabbit@{{ hostvars[groups['datanodes'][0]]['ansible_hostname'] }}
     - name: start rabbitmq app
       shell: rabbitmqctl start_app
-
