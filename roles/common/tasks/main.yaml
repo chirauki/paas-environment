@@ -14,5 +14,8 @@
     gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-RSA-KEY-Abiquo
     enabled: yes
 
-- name: Install abiquo-release
-  yum: name=abiquo-release-ee state=present
+- name: Install required release packages
+  yum: name={{ item }} state=present
+  with_items:
+    - abiquo-release-ee
+    - epel-release
