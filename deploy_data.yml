@@ -77,6 +77,11 @@
           type: datanode
         instance_tags:
           type: datanode
+        volumes:
+          - device_name: /dev/sda1
+            volume_type: gp2
+            volume_size: 10
+            delete_on_termination: yes
       register: datanodes
 
     - name: Address of the data nodes
