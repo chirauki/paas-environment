@@ -9,8 +9,22 @@
   vars:
     rabbitmq_erlang_cookie: OIZEBMCJICBLKMOMYJUX
     cluster_master_address: "{{ ansible_default_ipv4.address }}"
+    mariadb_config:
+      galera:
+        binlog_format: ROW
+        default-storage-engine: innodb
+        innodb_autoinc_lock_mode: 2
+        bind-address: 0.0.0.0
+        wsrep_on: ON
+        wsrep_provider: /usr/lib64/galera/libgalera_smm.so
+        wsrep_cluster_address: "gcomm://{{ hostvars[groups['datanodes']|join(',') }}"
+        wsrep_cluster_name: paasenvcluster
+        # wsrep_sst_method=rsync
+        wsrep_node_address: "{{ ansible_default_ipv4.address }}"
+        wsrep_node_name: "{{ ansible_hostname }}"
 
   roles:
+    - mariadb
     - rabbitmq
     - zookeeper
     - redis
