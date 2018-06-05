@@ -17,7 +17,7 @@
         bind-address: 0.0.0.0
         wsrep_on: ON
         wsrep_provider: /usr/lib64/galera/libgalera_smm.so
-        wsrep_cluster_address: "gcomm://{{ hostvars[groups['datanodes']|join(',') }}"
+        wsrep_cluster_address: "gcomm://{{ groups['datanodes']|join(',') }}"
         wsrep_cluster_name: paasenvcluster
         # wsrep_sst_method=rsync
         wsrep_node_address: "{{ ansible_default_ipv4.address }}"
