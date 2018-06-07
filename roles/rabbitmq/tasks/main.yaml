@@ -15,6 +15,7 @@
     src: "{{ role_path }}/files/rabbitmq.config"
     dest: /etc/rabbitmq/rabbitmq.config
   notify: restart rabbitmq service
+  register: phandling
 
 - meta: flush_handlers
 
@@ -24,6 +25,7 @@
     port: 5672
     delay: 5
     timeout: 60
+  when: phandling.changed
 
 - name: Configure policies for abiquo queues
   rabbitmq_policy:

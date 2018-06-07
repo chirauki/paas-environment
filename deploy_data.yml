@@ -53,7 +53,15 @@
             ports:
               - 2181
             group_name: management
-            rule_desc: RabbitMQ management
+            rule_desc: Zookeeper management
+          - proto: tcp
+            ports:
+              - 3306
+              - 4567
+              - 4568
+              - 4444
+            group_name: management
+            rule_desc: Galera management
           - proto: tcp
             from_port: 1
             to_port: 65535
