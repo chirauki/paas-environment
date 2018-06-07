@@ -5,3 +5,6 @@
 - name: Apply redis-sentinel.conf template
   template: src=redis-sentinel.conf.j2 dest=/etc/redis-sentinel.conf
   notify: restart redis sentinel
+
+- name: Start sentinel
+  service: name=redis-sentinel state=started enabled=yes

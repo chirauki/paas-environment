@@ -1,0 +1,116 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: False
+  vars:
+    ssh_key_name: mcirauqui
+    vpc_name: ansible_paas_vpc
+    vpc_region: eu-central-1
+    vpc_cidr: 172.16.0.0/16
+    public_subnet_cidr: 172.16.10.0/24
+    internal_networks:
+      db: 172.16.20.0/24
+      api_rs: 172.16.30.0/24
+    fe_count: 2
+    fe_image_id: ami-9a183671
+    fe_instance_type: t2.small
+
+  tasks:
+    - name: Locate VPC
+      ec2_vpc_net:
+        name: "{{ vpc_name }}"
+        cidr_block: "{{ vpc_cidr }}"
+        region: "{{ vpc_region }}"
+      register: vpc
+
+    - name: Locate public network
+      ec2_vpc_subnet:
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ vpc_region }}"
+        cidr: "{{ public_subnet_cidr }}"
+        resource_tags:
+          Name: public_subnet
+      register: public_subnet
+
+    - name: Create FE node security group
+      ec2_group:
+        name: frontend
+        description: FE access SG
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ vpc_region }}"
+        rules:
+          - proto: tcp
+            ports:
+              - 22
+            group_name: management
+            rule_desc: allow all on port 22
+          - proto: tcp
+            ports:
+              - 80
+              - 443
+            cidr_ip: 0.0.0.0/0
+            rule_desc: HTTP access
+
+    - name: Deploy FE nodes VM
+      ec2:
+        key_name: "{{ ssh_key_name }}"
+        instance_type: "{{ fe_instance_type }}"
+        image: "{{ fe_image_id }}"
+        wait: yes
+        group: frontend
+        vpc_subnet_id: "{{ public_subnet.subnet.id }}"
+        region: "{{ vpc_region }}"
+        exact_count: "{{ fe_count }}"
+        count_tag:
+          type: frontend
+        instance_tags:
+          type: frontend
+          Name: frontend
+        volumes:
+          - device_name: /dev/sda1
+            volume_type: gp2
+            volume_size: 10
+            delete_on_termination: yes
+      register: frontends
+
+    - name: Address of the frontend nodes
+      debug:
+        msg: "{{ item.private_dns_name }} ({{ item.private_ip }})"
+      with_items: "{{ frontends.tagged_instances }}"
+
+    - name: Add new instances to host group
+      add_host:
+        hostname: "{{ item.private_ip }}"
+        groupname: frontends
+        ansible_ssh_user: centos
+        ansible_become: yes
+      with_items: "{{ frontends.tagged_instances }}"
+
+    - name: Wait for SSH to come up
+      wait_for:
+        host: "{{ item.private_ip }}"
+        port: 22
+        delay: 10
+        timeout: 320
+        state: started
+      with_items: "{{ frontends.tagged_instances }}"
+
+    # - name: Create LB
+    #   ec2_elb_lb:
+    #     name: abq-fe
+    #     state: present
+    #     vpc_id: "{{ vpc.vpc.id }}"
+    #     region: "{{ vpc_region }}"
+    #     instance_ids: "{{ frontends.tagged_instances|map(attribute='id')|list }}"
+    #     zones:
+    #       - "{{ vpc_region }}a"
+    #       - "{{ vpc_region }}b"
+    #     listeners:
+    #       - protocol: http
+    #         load_balancer_port: 80
+    #         instance_port: 80
+    #         proxy_protocol: True
+    #       - protocol: tcp
+    #         load_balancer_port: 443
+    #         instance_protocol: tcp
+    #         instance_port: 443

@@ -1,0 +1,20 @@
+---
+- hosts: frontends
+  become: yes
+  vars:
+    abiquo_profile: frontend
+    ui_proxies:
+      /api:
+        url: ajp://localhost:8010/api
+      /am:
+        url: ajp://localhost:8010/am
+      /m:
+        url: http://localhost:8009/m
+      /legal:
+        url: http://localhost:8009/legal
+      /jasperserver:
+        url: "http://{{ env_name }}-reporting:8888/jasperserver"
+
+  roles:
+    - common
+    - abiquo

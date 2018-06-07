@@ -10,9 +10,9 @@
     internal_networks:
       db: 172.16.20.0/24
       api_rs: 172.16.30.0/24
-    data_count: 3
-    data_image_id: ami-9a183671
-    data_instance_type: t2.large
+    api_count: 2
+    api_image_id: ami-9a183671
+    api_instance_type: t2.medium
 
   tasks:
     - name: Locate VPC
@@ -32,7 +32,7 @@
       register: internal_subnets
       with_dict: "{{ internal_networks }}"
 
-    - name: Create Data node security group
+    - name: Create API security group
       ec2_group:
         name: datanode
         description: Data node access SG
@@ -46,65 +46,48 @@
             rule_desc: allow all on port 22
           - proto: tcp
             ports:
-              - 15672
-            group_name: management
-            rule_desc: RabbitMQ management
-          - proto: tcp
-            ports:
-              - 2181
-            group_name: management
-            rule_desc: Zookeeper management
-          - proto: tcp
-            ports:
-              - 3306
-              - 4567
-              - 4568
-              - 4444
-            group_name: management
-            rule_desc: Galera management
-          - proto: tcp
-            from_port: 1
-            to_port: 65535
-            group_name: datanode
-            rule_desc: Allow access from any other datanode
+              - 8009
+              - 8010
+            group_name: frontend
+            rule_desc: Tomcat access
 
     - set_fact:
-        db_net: "{{ (internal_subnets.results|selectattr('item.key', 'match', 'db')|list)[0] }}"
+        api_net: "{{ (internal_subnets.results|selectattr('item.key', 'match', 'api_rs')|list)[0] }}"
 
-    - name: Deploy Data nodes VM
+    - name: Deploy API VM
       ec2:
         key_name: "{{ ssh_key_name }}"
-        instance_type: "{{ data_instance_type }}"
-        image: "{{ data_image_id }}"
+        instance_type: "{{ api_instance_type }}"
+        image: "{{ api_image_id }}"
         wait: yes
         group: datanode
-        vpc_subnet_id: "{{ db_net.subnet.id }}"
+        vpc_subnet_id: "{{ api_net.subnet.id }}"
         region: "{{ vpc_region }}"
-        exact_count: "{{ data_count }}"
+        exact_count: "{{ api_count }}"
         count_tag:
-          type: datanode
+          type: api
         instance_tags:
-          type: datanode
-          Name: datanode
+          type: api
+          Name: api
         volumes:
           - device_name: /dev/sda1
             volume_type: gp2
             volume_size: 10
             delete_on_termination: yes
-      register: datanodes
+      register: apis
 
-    - name: Address of the data nodes
+    - name: Address of the APIs
       debug:
         msg: "{{ item.private_dns_name }} ({{ item.private_ip }})"
-      with_items: "{{ datanodes.tagged_instances }}"
+      with_items: "{{ apis.tagged_instances }}"
 
     - name: Add new instances to host group
       add_host:
         hostname: "{{ item.private_ip }}"
-        groupname: datanodes
+        groupname: apis
         ansible_ssh_user: centos
         ansible_become: yes
-      with_items: "{{ datanodes.tagged_instances }}"
+      with_items: "{{ apis.tagged_instances }}"
 
     - name: Wait for SSH to come up
       wait_for:
@@ -113,4 +96,4 @@
         delay: 10
         timeout: 320
         state: started
-      with_items: "{{ datanodes.tagged_instances }}"
+      with_items: "{{ apis.tagged_instances }}"

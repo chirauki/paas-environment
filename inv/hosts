@@ -1,10 +1,18 @@
 [all:vars]
 ssh_args="-o ForwardAgent=yes -o ControlMaster=auto -o ControlPersist=60s"
+ansible_ssh_user=centos
 
 [tag_type_datanode]
+
+[tag_type_frontend]
+
+[tag_type_api]
 
 [datanodes:children]
 tag_type_datanode
 
-[datanodes:vars]
-ansible_ssh_user=centos
+[frontends:children]
+tag_type_frontend
+
+[apis:children]
+tag_type_api
