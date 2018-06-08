@@ -50,11 +50,3 @@
         instance_tags:
           type: datanode
       register: datanodes
-
-    - name: Delete Data node security group
-      ec2_group:
-        name: datanode
-        description: Data node access SG
-        vpc_id: "{{ vpc.vpc.id }}"
-        region: "{{ vpc_region }}"
-        state: absent
