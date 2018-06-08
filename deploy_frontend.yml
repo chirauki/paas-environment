@@ -34,25 +34,6 @@
       register: internal_subnets
       with_dict: "{{ internal_networks }}"
 
-    - name: Create FE node security group
-      ec2_group:
-        name: frontend
-        description: FE access SG
-        vpc_id: "{{ vpc.vpc.id }}"
-        region: "{{ vpc_region }}"
-        rules:
-          - proto: tcp
-            ports:
-              - 22
-            group_name: management
-            rule_desc: allow all on port 22
-          - proto: tcp
-            ports:
-              - 80
-              - 443
-            cidr_ip: 0.0.0.0/0
-            rule_desc: HTTP access
-
     - set_fact:
         api_net: "{{ (internal_subnets.results|selectattr('item.key', 'match', 'frontend')|list)[0] }}"
 

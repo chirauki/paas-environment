@@ -99,6 +99,100 @@
             cidr_ip: 0.0.0.0/0
             rule_desc: allow all on port 22
 
+    - name: Create FE node security group
+      ec2_group:
+        name: frontend
+        description: FE access SG
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ vpc_region }}"
+        rules:
+          - proto: tcp
+            ports:
+              - 22
+            group_name: management
+            rule_desc: allow all on port 22
+          - proto: tcp
+            ports:
+              - 80
+              - 443
+            cidr_ip: 0.0.0.0/0
+            rule_desc: HTTP access
+
+    - name: Create API security group
+      ec2_group:
+        name: apis
+        description: Data node access SG
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ vpc_region }}"
+        rules:
+          - proto: tcp
+            ports:
+              - 22
+            group_name: management
+            rule_desc: allow all on port 22
+          - proto: tcp
+            ports:
+              - 8009
+              - 8010
+            group_name: frontend
+            rule_desc: Tomcat access
+
+    - name: Create Data node security group
+      ec2_group:
+        name: datanode
+        description: Data node access SG
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ vpc_region }}"
+        rules:
+          - proto: tcp
+            ports:
+              - 22
+            group_name: management
+            rule_desc: allow all on port 22
+          - proto: tcp
+            ports:
+              - 15672
+            group_name: management
+            rule_desc: RabbitMQ management
+          - proto: tcp
+            ports:
+              - 2181
+            group_name: management
+            rule_desc: Zookeeper management
+          - proto: tcp
+            ports:
+              - 3306
+              - 4567
+              - 4568
+              - 4444
+            group_name: management
+            rule_desc: Galera management
+          - proto: tcp
+            ports:
+              - 3306
+            group_name: apis
+            rule_desc: Galera access for API
+          - proto: tcp
+            ports:
+              - 2181
+            group_name: apis
+            rule_desc: Zookeeper access for API
+          - proto: tcp
+            ports:
+              - 5672
+            group_name: apis
+            rule_desc: RabbitMQ access for API
+          - proto: tcp
+            ports:
+              - 6379
+            group_name: apis
+            rule_desc: Redis access for API
+          - proto: tcp
+            from_port: 1
+            to_port: 65535
+            group_name: datanode
+            rule_desc: Allow access from any other datanode
+
     - name: Deploy bastion VM
       ec2:
         key_name: "{{ ssh_key_name }}"
@@ -173,4 +267,3 @@
         dest: /home/ec2-user/.ansible.cfg
         owner: ec2-user
         group: ec2-user
-
