@@ -9,6 +9,7 @@
     vpc_cidr: 172.16.0.0/16
     public_subnet_cidr: 172.16.10.0/24
     internal_networks:
+      frontend: 172.16.100.0/24
       db: 172.16.20.0/24
       api_rs: 172.16.30.0/24
     fe_count: 2
@@ -23,14 +24,15 @@
         region: "{{ vpc_region }}"
       register: vpc
 
-    - name: Locate public network
+    - name: Locate private networks
       ec2_vpc_subnet:
         vpc_id: "{{ vpc.vpc.id }}"
         region: "{{ vpc_region }}"
-        cidr: "{{ public_subnet_cidr }}"
+        cidr: "{{ item.value }}"
         resource_tags:
-          Name: public_subnet
-      register: public_subnet
+          Name: "{{ item.key }}_subnet"
+      register: internal_subnets
+      with_dict: "{{ internal_networks }}"
 
     - name: Create FE node security group
       ec2_group:
@@ -51,6 +53,9 @@
             cidr_ip: 0.0.0.0/0
             rule_desc: HTTP access
 
+    - set_fact:
+        api_net: "{{ (internal_subnets.results|selectattr('item.key', 'match', 'frontend')|list)[0] }}"
+
     - name: Deploy FE nodes VM
       ec2:
         key_name: "{{ ssh_key_name }}"
@@ -58,7 +63,7 @@
         image: "{{ fe_image_id }}"
         wait: yes
         group: frontend
-        vpc_subnet_id: "{{ public_subnet.subnet.id }}"
+        vpc_subnet_id: "{{ api_net.subnet.id }}"
         region: "{{ vpc_region }}"
         exact_count: "{{ fe_count }}"
         count_tag:

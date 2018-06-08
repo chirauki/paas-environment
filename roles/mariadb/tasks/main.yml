@@ -21,3 +21,26 @@
     owner: mysql
     group: mysql
     state: directory
+
+- name: Start Galera
+  block:
+    # TODO
+    # Add logic to check if Galera needs bootstrap
+    - name: Stop Galera
+      service: name=mysql state=stopped
+
+    - name: Start Galera bootstrap
+      shell: galera_new_cluster
+  when: cluster_master_address == ansible_default_ipv4.address
+
+- name: Start Galera
+  service: name=mysql state=started enabled=yes
+  when: cluster_master_address == ansible_default_ipv4.address
+
+- name: Allow root connections from remote
+  mysql_user:
+    name: root
+    password: ""
+    host: "%"
+    priv: "*.*:ALL,GRANT"
+  when: abiquo_db_user is defined

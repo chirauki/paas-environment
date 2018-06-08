@@ -7,13 +7,14 @@
     vpc_name: ansible_paas_vpc
     vpc_region: eu-central-1
     vpc_cidr: 172.16.0.0/16
+    public_subnet_cidr: 172.16.10.0/24
     internal_networks:
       frontend: 172.16.100.0/24
       db: 172.16.20.0/24
       api_rs: 172.16.30.0/24
-    api_count: 2
-    api_image_id: ami-9a183671
-    api_instance_type: t2.medium
+    fe_count: 2
+    fe_image_id: ami-9a183671
+    fe_instance_type: t2.small
 
   tasks:
     - name: Locate VPC
@@ -23,20 +24,19 @@
         region: "{{ vpc_region }}"
       register: vpc
 
-    - name: Locate private networks
+    - name: Locate public network
       ec2_vpc_subnet:
         vpc_id: "{{ vpc.vpc.id }}"
         region: "{{ vpc_region }}"
-        cidr: "{{ item.value }}"
+        cidr: "{{ public_subnet_cidr }}"
         resource_tags:
-          Name: "{{ item.key }}_subnet"
-      register: internal_subnets
-      with_dict: "{{ internal_networks }}"
+          Name: public_subnet
+      register: public_subnet
 
-    - name: Create API security group
+    - name: Create FE node security group
       ec2_group:
-        name: apis
-        description: Data node access SG
+        name: frontend
+        description: FE access SG
         vpc_id: "{{ vpc.vpc.id }}"
         region: "{{ vpc_region }}"
         rules:
@@ -47,48 +47,45 @@
             rule_desc: allow all on port 22
           - proto: tcp
             ports:
-              - 8009
-              - 8010
-            group_name: frontend
-            rule_desc: Tomcat access
+              - 80
+              - 443
+            cidr_ip: 0.0.0.0/0
+            rule_desc: HTTP access
 
-    - set_fact:
-        api_net: "{{ (internal_subnets.results|selectattr('item.key', 'match', 'api_rs')|list)[0] }}"
-
-    - name: Deploy API VM
+    - name: Deploy FE nodes VM
       ec2:
         key_name: "{{ ssh_key_name }}"
-        instance_type: "{{ api_instance_type }}"
-        image: "{{ api_image_id }}"
+        instance_type: "{{ fe_instance_type }}"
+        image: "{{ fe_image_id }}"
         wait: yes
-        group: datanode
-        vpc_subnet_id: "{{ api_net.subnet.id }}"
+        group: frontend
+        vpc_subnet_id: "{{ public_subnet.subnet.id }}"
         region: "{{ vpc_region }}"
-        exact_count: "{{ api_count }}"
+        exact_count: "{{ fe_count }}"
         count_tag:
-          type: api
+          type: frontend
         instance_tags:
-          type: api
-          Name: api
+          type: frontend
+          Name: frontend
         volumes:
           - device_name: /dev/sda1
             volume_type: gp2
             volume_size: 10
             delete_on_termination: yes
-      register: apis
+      register: frontends
 
-    - name: Address of the APIs
+    - name: Address of the frontend nodes
       debug:
         msg: "{{ item.private_dns_name }} ({{ item.private_ip }})"
-      with_items: "{{ apis.tagged_instances }}"
+      with_items: "{{ frontends.tagged_instances }}"
 
     - name: Add new instances to host group
       add_host:
         hostname: "{{ item.private_ip }}"
-        groupname: apis
+        groupname: frontends
         ansible_ssh_user: centos
         ansible_become: yes
-      with_items: "{{ apis.tagged_instances }}"
+      with_items: "{{ frontends.tagged_instances }}"
 
     - name: Wait for SSH to come up
       wait_for:
@@ -97,4 +94,4 @@
         delay: 10
         timeout: 320
         state: started
-      with_items: "{{ apis.tagged_instances }}"
+      with_items: "{{ frontends.tagged_instances }}"

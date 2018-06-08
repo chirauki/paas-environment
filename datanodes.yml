@@ -31,12 +31,6 @@
     - redis-sentinel
 
   tasks:
-    - name: Stop Galera
-      service: name=mysql state=stopped
-
-    - name: Start Galera bootstrap
-      shell: galera_new_cluster
-
     - name: Add user abiquo
       rabbitmq_user:
         name: abiquo

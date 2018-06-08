@@ -2,10 +2,18 @@
 - hosts: apis
   become: yes
   vars:
+    rabbitmq_port_suffixes: "{{[':5672'] * groups['datanodes']|length }}"
+    mariadb_port_suffixes: "{{[':3306'] * groups['datanodes']|length }}"
     abiquo_profile: server
-    abiquo_rabbitmq_addresses: "{{ groups['datanodes']|join(':5672,') }}"
+    abiquo_rabbitmq_addresses: "{{ groups['datanodes']|zip(rabbitmq_port_suffixes)|map('join')|list|join(',') }}"
     abiquo_install_services: false
     abiquo_install_frontend: false
+    abiquo_db_user: abiquo
+    abiquo_db_pass: abiquo
+    abiquo_db_host: "{{ groups['datanodes'][0] }}"
+    abiquo_db_port: 3306
+    abiquo_db_from: '%'
+    abiquo_jdbc_str: "{{ groups['datanodes']|zip(mariadb_port_suffixes)|map('join')|list|join(',') }}"
 
   roles:
     - common

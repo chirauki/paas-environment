@@ -2,18 +2,29 @@
 - hosts: frontends
   become: yes
   vars:
+    balancer_members_preffixes: "{{['BalancerMember ajp://'] * groups['apis']|length }}"
+    balancer_members_suffixes: "{{[':8010'] * groups['apis']|length }}"
+    balancer_members: "{{ balancer_members_preffixes|zip(groups['apis']|zip(balancer_members_suffixes)|map('join')|list|join('\n') }}"
+    balancer_m_members_preffixes: "{{['BalancerMember http://'] * groups['apis']|length }}"
+    balancer_m_members_suffixes: "{{[':8009'] * groups['apis']|length }}"
+    balancer_m_members: "{{ balancer_m_members_preffixes|zip(groups['apis']|zip(balancer_m_members_suffixes)|map('join')|list|join('\n') }}"
     abiquo_profile: frontend
+    ui_apache_opts_raw: |
+      <Proxy "balancer://api">
+      {{ balancer_members_suffixes }}
+      </Proxy: >
+      <Proxy "balancer://m">
+      {{ balancer_m_members_suffixes }}
+      </Proxy: >
     ui_proxies:
       /api:
-        url: ajp://localhost:8010/api
-      /am:
-        url: ajp://localhost:8010/am
+        url: balancer://api
+        options:
+          ProxySet: stickysession=JSESSIONID|jsessionid
       /m:
         url: http://localhost:8009/m
       /legal:
         url: http://localhost:8009/legal
-      /jasperserver:
-        url: "http://{{ env_name }}-reporting:8888/jasperserver"
 
   roles:
     - common

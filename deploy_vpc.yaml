@@ -9,6 +9,7 @@
     vpc_region: eu-central-1
     public_subnet_cidr: 172.16.10.0/24
     internal_networks:
+      frontend: 172.16.100.0/24
       db: 172.16.20.0/24
       api_rs: 172.16.30.0/24
     bastion_image_id: ami-43eec3a8
@@ -165,3 +166,11 @@
     - name: Install requirements
       pip:
         requirements: /home/ec2-user/paas-environment/requirements.txt
+
+    - name: Ansible config
+      copy:
+        src: files/ansible.cfg
+        dest: /home/ec2-user/.ansible.cfg
+        owner: ec2-user
+        group: ec2-user
+

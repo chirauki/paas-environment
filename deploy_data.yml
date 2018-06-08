@@ -63,6 +63,26 @@
             group_name: management
             rule_desc: Galera management
           - proto: tcp
+            ports:
+              - 3306
+            group_name: apis
+            rule_desc: Galera access for API
+          - proto: tcp
+            ports:
+              - 2181
+            group_name: apis
+            rule_desc: Zookeeper access for API
+          - proto: tcp
+            ports:
+              - 5672
+            group_name: apis
+            rule_desc: RabbitMQ access for API
+          - proto: tcp
+            ports:
+              - 6379
+            group_name: apis
+            rule_desc: Redis access for API
+          - proto: tcp
             from_port: 1
             to_port: 65535
             group_name: datanode
