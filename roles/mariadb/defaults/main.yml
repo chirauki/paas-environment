@@ -1,5 +1,7 @@
 ---
 # MariaDB
+mariadb_root_password: temporal
+
 mariadb_config: {}
 default_mariadb_config:
   client:

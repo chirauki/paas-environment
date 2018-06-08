@@ -35,7 +35,7 @@
       with_dict: "{{ internal_networks }}"
 
     - set_fact:
-        api_net: "{{ (internal_subnets.results|selectattr('item.key', 'match', 'frontend')|list)[0] }}"
+        fe_net: "{{ (internal_subnets.results|selectattr('item.key', 'match', 'frontend')|list)[0] }}"
 
     - name: Deploy FE nodes VM
       ec2:
@@ -44,7 +44,7 @@
         image: "{{ fe_image_id }}"
         wait: yes
         group: frontend
-        vpc_subnet_id: "{{ api_net.subnet.id }}"
+        vpc_subnet_id: "{{ fe_net.subnet.id }}"
         region: "{{ vpc_region }}"
         exact_count: "{{ fe_count }}"
         count_tag:
