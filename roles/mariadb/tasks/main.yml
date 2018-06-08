@@ -10,12 +10,35 @@
   service: name=mysql enabled=yes
 
 - name: Create MariaDB root PW file
-  file:
-    path: /root/.mysql_pw
+  copy:
+    dest: /root/.mysql_pw
     content: |
       GRANT ALL PRIVILEGES TO root@'localhost' IDENTIFIED BY '{{ mariadb_root_password }}' WITH GRANT OPTION;
       GRANT ALL PRIVILEGES TO root@'%' IDENTIFIED BY '{{ mariadb_root_password }}' WITH GRANT OPTION;
-  notify: reset mariadb pass
+  register: pwfile
+
+- name: Reset MariaDB password
+  block:
+    - name: Install requirements
+      yum: name=MySQL-python state=present
+
+    - name: Stop MariaDB
+      service: name=mysql state=stopped
+
+    - name: Start with skip grants
+      shell: nohup mysqld_safe --skip-grant-tables &
+
+    - name: Change root pass
+      mysql_db:
+        name: mysql
+        state: import
+        target: /root/.mysql_pw
+        login_user: root
+        login_password: ''
+
+    - name: Restart MariaDB
+      service: name=mysql state=restarted
+  when: pwfile.changed
 
 - name: "MariaDB configuration file {{ item.key }}.cnf"
   template:
