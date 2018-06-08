@@ -11,10 +11,14 @@
 
 - name: Create MariaDB root PW file
   copy:
-    dest: /root/.mysql_pw
+    dest: /var/lib/mysql/.mysql_init
     content: |
-      GRANT ALL PRIVILEGES ON *.* TO root@'localhost' IDENTIFIED BY '{{ mariadb_root_password }}' WITH GRANT OPTION;
-      GRANT ALL PRIVILEGES ON *.* TO root@'%' IDENTIFIED BY '{{ mariadb_root_password }}' WITH GRANT OPTION;
+      CREATE USER IF NOT EXISTS root@'%'
+      UPDATE mysql.user SET password=PASSWORD('{{ mariadb_root_password }}') WHERE User='root' AND Host = 'localhost';
+      UPDATE mysql.user SET password=PASSWORD('{{ mariadb_root_password }}') WHERE User='root' AND Host = '%';
+      FLUSH PRIVILEGES;
+    owner: mysql
+    group: mysql
   register: pwfile
 
 - name: Reset MariaDB password
@@ -23,18 +27,10 @@
       yum: name=MySQL-python state=present
 
     - name: Set MYSQLD_OPTS
-      shell: systemctl set-environment MYSQLD_OPTS="--skip-grant-tables"
+      shell: systemctl set-environment MYSQLD_OPTS="--init-file /var/lib/mysql/.mysql_init"
 
     - name: Restart MariaDB
       service: name=mysql state=restarted
-
-    - name: Change root pass
-      mysql_db:
-        name: mysql
-        state: import
-        target: /root/.mysql_pw
-        login_user: root
-        login_password: ''
 
     - name: Unset MYSQLD_OPTS
       shell: systemctl unset-environment MYSQLD_OPTS
