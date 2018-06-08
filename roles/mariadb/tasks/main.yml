@@ -22,11 +22,11 @@
     - name: Install requirements
       yum: name=MySQL-python state=present
 
-    - name: Stop MariaDB
-      service: name=mysql state=stopped
+    - name: Set MYSQLD_OPTS
+      shell: systemctl set-environment MYSQLD_OPTS="--skip-grant-tables"
 
-    - name: Start with skip grants
-      shell: nohup mysqld_safe --skip-grant-tables &
+    - name: Restart MariaDB
+      service: name=mysql state=restarted
 
     - name: Change root pass
       mysql_db:
@@ -38,6 +38,9 @@
 
     - name: Restart MariaDB
       service: name=mysql state=restarted
+
+    - name: Unset MYSQLD_OPTS
+      shell: systemctl unset-environment MYSQLD_OPTS
   when: pwfile.changed
 
 - name: "MariaDB configuration file {{ item.key }}.cnf"
