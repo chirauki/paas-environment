@@ -13,8 +13,8 @@
   copy:
     dest: /root/.mysql_pw
     content: |
-      GRANT ALL PRIVILEGES TO root@'localhost' IDENTIFIED BY '{{ mariadb_root_password }}' WITH GRANT OPTION;
-      GRANT ALL PRIVILEGES TO root@'%' IDENTIFIED BY '{{ mariadb_root_password }}' WITH GRANT OPTION;
+      GRANT ALL PRIVILEGES ON *.* TO root@'localhost' IDENTIFIED BY '{{ mariadb_root_password }}' WITH GRANT OPTION;
+      GRANT ALL PRIVILEGES ON *.* TO root@'%' IDENTIFIED BY '{{ mariadb_root_password }}' WITH GRANT OPTION;
   register: pwfile
 
 - name: Reset MariaDB password
