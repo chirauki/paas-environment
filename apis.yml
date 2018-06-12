@@ -14,6 +14,7 @@
     abiquo_db_port: 3306
     abiquo_db_from: '%'
     abiquo_jdbc_str: "{{ groups['datanodes']|zip(mariadb_port_suffixes)|map('join')|list|join(',') }}"
+    abiquo_db_login_pass: temporal
     ui_cert_source:
 
   roles:

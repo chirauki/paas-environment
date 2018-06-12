@@ -2,20 +2,18 @@
 - hosts: frontends
   become: yes
   vars:
-    balancer_members_preffixes: "{{['BalancerMember ajp://'] * groups['apis']|length }}"
-    balancer_members_suffixes: "{{[':8010'] * groups['apis']|length }}"
-    balancer_members: "{{ balancer_members_preffixes|zip(groups['apis']|zip(balancer_members_suffixes)|map('join')|list|join('\n') }}"
-    balancer_m_members_preffixes: "{{['BalancerMember http://'] * groups['apis']|length }}"
-    balancer_m_members_suffixes: "{{[':8009'] * groups['apis']|length }}"
-    balancer_m_members: "{{ balancer_m_members_preffixes|zip(groups['apis']|zip(balancer_m_members_suffixes)|map('join')|list|join('\n') }}"
+    balancer_members_list: '{{ groups["apis"] | map("regex_replace", "^(.*)$", "BalancerMember ajp://\1:8010") | list }}'
+    balancer_m_members_list: '{{ groups["apis"] | map("regex_replace", "^(.*)$", "BalancerMember http://\1:8009") | list }}'
+    balancer_members: "{{ balancer_members_list | join('\n') }}"
+    balancer_m_members: "{{ balancer_m_members_list | join('\n') }}"
     abiquo_profile: frontend
     ui_apache_opts_raw: |
       <Proxy "balancer://api">
-      {{ balancer_members_suffixes }}
-      </Proxy: >
+          {{ balancer_members | join('\n') }}
+      </Proxy>
       <Proxy "balancer://m">
-      {{ balancer_m_members_suffixes }}
-      </Proxy: >
+          {{ balancer_m_members | join('\n') }}
+      </Proxy>
     ui_proxies:
       /api:
         url: balancer://api
@@ -25,6 +23,12 @@
         url: http://localhost:8009/m
       /legal:
         url: http://localhost:8009/legal
+
+  tasks:
+    - debug:
+        msg: "{{ balancer_members_list }}"
+    - debug:
+        msg: "{{ balancer_members }}"
 
   roles:
     - common

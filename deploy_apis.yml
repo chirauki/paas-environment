@@ -42,7 +42,7 @@
         instance_type: "{{ api_instance_type }}"
         image: "{{ api_image_id }}"
         wait: yes
-        group: datanode
+        group: apis
         vpc_subnet_id: "{{ api_net.subnet.id }}"
         region: "{{ vpc_region }}"
         exact_count: "{{ api_count }}"
