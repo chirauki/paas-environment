@@ -13,7 +13,7 @@
   copy:
     dest: /var/lib/mysql/.mysql_init
     content: |
-      CREATE USER IF NOT EXISTS root@'%'
+      CREATE USER IF NOT EXISTS root@'%';
       UPDATE mysql.user SET password=PASSWORD('{{ mariadb_root_password }}') WHERE User='root' AND Host = 'localhost';
       UPDATE mysql.user SET password=PASSWORD('{{ mariadb_root_password }}') WHERE User='root' AND Host = '%';
       GRANT ALL PRIVILEGES ON *.* TO root@'%';
