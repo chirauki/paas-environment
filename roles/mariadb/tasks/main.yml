@@ -45,6 +45,7 @@
     src: cnf.j2
     dest: /etc/my.cnf.d/{{ item.key }}.cnf
   with_dict: "{{ default_mariadb_config | combine(mariadb_config) }}"
+  register: mariadb_config
 
 - name: Ensure /var/log/mysql folder exists
   file:
@@ -79,6 +80,10 @@
     - name: Start Galera bootstrap
       shell: galera_new_cluster
   when: cluster_master_address == ansible_default_ipv4.address and galera_bootstrap
+
+- name: Start Galera
+  service: name=mysql state=restarted enabled=yes
+  when: "{{ ((cluster_master_address == ansible_default_ipv4.address and not galera_bootstrap) or (cluster_master_address != ansible_default_ipv4.address)) and mariadb_config.changed }}"
 
 - name: Start Galera
   service: name=mysql state=started enabled=yes

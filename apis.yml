@@ -2,10 +2,11 @@
 - hosts: apis
   become: yes
   vars:
-    rabbitmq_port_suffixes: "{{[':5672'] * groups['datanodes']|length }}"
-    mariadb_port_suffixes: "{{[':3306'] * groups['datanodes']|length }}"
+    zk_list: '{{ groups["datanodes"] | map("regex_replace", "^(.*)$", "\1:2181") | list }}'
+    rabbit_list: '{{ groups["datanodes"] | map("regex_replace", "^(.*)$", "\1:5672") | list }}'
+    mariadb_list: '{{ groups["datanodes"] | map("regex_replace", "^(.*)$", "\1:3306") | list }}'
     abiquo_profile: server
-    abiquo_rabbitmq_addresses: "{{ groups['datanodes']|zip(rabbitmq_port_suffixes)|map('join')|list|join(',') }}"
+    abiquo_rabbitmq_addresses: "{{ rabbit_list | join(',') }}"
     abiquo_install_services: false
     abiquo_install_frontend: false
     abiquo_db_user: abiquo
@@ -13,8 +14,10 @@
     abiquo_db_host: "{{ groups['datanodes'][0] }}"
     abiquo_db_port: 3306
     abiquo_db_from: '%'
-    abiquo_jdbc_str: "{{ groups['datanodes']|zip(mariadb_port_suffixes)|map('join')|list|join(',') }}"
+    abiquo_jdbc_str: "{{ mariadb_list | join(',') }}"
     abiquo_db_login_pass: temporal
+    abiquo_properties:
+      abiquo.api.zk.serverConnection: "{{ zk_list | join(',') }}"
 
   roles:
     - common
