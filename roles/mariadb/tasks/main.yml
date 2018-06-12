@@ -69,7 +69,7 @@
   register: wsrep_cluster_size
 
 - set_fact:
-    galera_bootstrap: "{{ wsrep_ready.stdout == 'OFF' && wsrep_cluster_size.stdout == '0' }}"
+    galera_bootstrap: "{{ wsrep_ready.stdout == 'OFF' and wsrep_cluster_size.stdout == '0' }}"
 
 - name: Start Galera
   block:
