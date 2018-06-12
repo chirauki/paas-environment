@@ -2,33 +2,27 @@
 - hosts: frontends
   become: yes
   vars:
-    balancer_members_list: '{{ groups["apis"] | map("regex_replace", "^(.*)$", "BalancerMember ajp://\1:8010") | list }}'
-    balancer_m_members_list: '{{ groups["apis"] | map("regex_replace", "^(.*)$", "BalancerMember http://\1:8009") | list }}'
+    balancer_members_list: '{{ groups["apis"] | map("regex_replace", "^(.*)$", "BalancerMember ajp://\1:8010/api") | list }}'
+    balancer_m_members_list: '{{ groups["apis"] | map("regex_replace", "^(.*)$", "BalancerMember http://\1:8009/m") | list }}'
     balancer_members: "{{ balancer_members_list | join('\n') }}"
     balancer_m_members: "{{ balancer_m_members_list | join('\n') }}"
     abiquo_profile: frontend
     ui_apache_opts_raw: |
       <Proxy "balancer://api">
-          {{ balancer_members | join('\n') }}
+          {{ balancer_members }}
+          ProxySet stickysession=ABQSESSIONID|abqsessionid
       </Proxy>
       <Proxy "balancer://m">
-          {{ balancer_m_members | join('\n') }}
+          {{ balancer_m_members }}
+          ProxySet stickysession=ABQSESSIONID|abqsessionid
       </Proxy>
     ui_proxies:
       /api:
         url: balancer://api
-        options:
-          ProxySet: stickysession=JSESSIONID|jsessionid
       /m:
-        url: http://localhost:8009/m
+        url: balancer://m
       /legal:
         url: http://localhost:8009/legal
-
-  tasks:
-    - debug:
-        msg: "{{ balancer_members_list }}"
-    - debug:
-        msg: "{{ balancer_members }}"
 
   roles:
     - common

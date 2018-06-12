@@ -28,7 +28,7 @@
       yum: name=MySQL-python state=present
 
     - name: Set MYSQLD_OPTS
-      shell: systemctl set-environment MYSQLD_OPTS="--init-file /var/lib/mysql/.mysql_init"
+      shell: systemctl set-environment MYSQLD_OPTS="--skip-networking --init-file /var/lib/mysql/.mysql_init"
 
     - name: Restart MariaDB
       service: name=mysql state=restarted
@@ -53,6 +53,24 @@
     group: mysql
     state: directory
 
+- set_fact:
+    pwdflag: "-p{{ abiquo_db_pass }}"
+  when: abiquo_db_pass is defined
+
+- set_fact:
+    mysql_command: "mysql -h{{ abiquo_db_host }} -P{{ abiquo_db_port }} -u{{ abiquo_db_user }} {{ pwdflag is defined | ternary(pwdflag,'') }} "
+
+- name: Check if WSREP is ready
+  shell: "{{ mysql_command }} -Nse -Nse 'select VARIABLE_VALUE FROM INFORMATION_SCHEMA.GLOBAL_STATUS WHERE  VARIABLE_NAME=\"wsrep_ready\"'"
+  register: wsrep_ready
+
+- name: Check if WSREP cluster size
+  shell: "{{ mysql_command }} -Nse -Nse 'select VARIABLE_VALUE FROM INFORMATION_SCHEMA.GLOBAL_STATUS WHERE  VARIABLE_NAME=\"wsrep_cluster_size\"'"
+  register: wsrep_cluster_size
+
+- set_fact:
+    galera_bootstrap: "{{ wsrep_ready.stdout == 'OFF' && wsrep_cluster_size.stdout == '0' }}"
+
 - name: Start Galera
   block:
     # TODO
@@ -62,16 +80,8 @@
 
     - name: Start Galera bootstrap
       shell: galera_new_cluster
-  when: cluster_master_address == ansible_default_ipv4.address
+  when: cluster_master_address == ansible_default_ipv4.address and galera_bootstrap
 
 - name: Start Galera
   service: name=mysql state=started enabled=yes
-  when: cluster_master_address == ansible_default_ipv4.address
-
-- name: Allow root connections from remote
-  mysql_user:
-    name: root
-    password: ""
-    host: "%"
-    priv: "*.*:ALL,GRANT"
-  when: abiquo_db_user is defined
+  when: cluster_master_address != ansible_default_ipv4.address
