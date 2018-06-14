@@ -1,0 +1,21 @@
+---
+- hosts: monitoring
+  become: yes
+  vars:
+    monitoring_list: '{{ groups["monitoring"] | map("regex_replace", "^(.*)$", "\1:9160") | list }}'
+    mariadb_list: '{{ groups["datanodes"] | map("regex_replace", "^(.*)$", "\1:3306") | list }}'
+    rabbitmq_list: '{{ groups["datanodes"] | map("regex_replace", "^(.*)$", "\1:5672") | list }}'
+    abiquo_profile: monitoring
+    kariosdb_cassandra_rpc_address: "{{ monitoring_list | join(',') }}"
+    abiquo_monitoring_rabbitmq_addresses: "{{ rabbitmq_list | join(',') }}"
+    abiquo_monitoring_db_user: abiquo
+    abiquo_monitoring_db_pass: abiquo
+    abiquo_monitoring_db_host: "{{ groups['datanodes'][0] }}"
+    abiquo_monitoring_db_port: 3306
+    abiquo_monitoring_db_from: '%'
+    abiquo_monitoring_jdbc_str: "{{ mariadb_list | join(',') }}"
+    abiquo_db_login_pass: temporal
+
+  roles:
+    - common
+    - abiquo

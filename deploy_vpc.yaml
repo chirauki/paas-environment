@@ -137,6 +137,33 @@
             group_name: frontend
             rule_desc: Tomcat access
 
+    - name: Create monitoring security group
+      ec2_group:
+        name: monitoring
+        description: Monitoring access SG
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ vpc_region }}"
+        rules:
+          - proto: tcp
+            ports:
+              - 22
+            group_name: management
+            rule_desc: allow all on port 22
+          - proto: tcp
+            ports:
+              - 9160
+              - 8080
+              - 36638
+            group_name: management
+            rule_desc: Monitoring access
+          - proto: tcp
+            ports:
+              - 9160
+              - 8080
+              - 36638
+            group_name: apis
+            rule_desc: APIs Monitoring access
+
     - name: Create Data node security group
       ec2_group:
         name: datanode
