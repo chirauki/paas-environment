@@ -8,6 +8,7 @@
     abiquo_profile: monitoring
     kariosdb_cassandra_rpc_address: "{{ monitoring_list | join(',') }}"
     abiquo_monitoring_rabbitmq_addresses: "{{ rabbitmq_list | join(',') }}"
+    monitoring_install_mariadb: no
     abiquo_monitoring_db_user: abiquo
     abiquo_monitoring_db_pass: abiquo
     abiquo_monitoring_db_host: "{{ groups['datanodes'][0] }}"
