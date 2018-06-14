@@ -215,6 +215,12 @@
             group_name: apis
             rule_desc: Redis access for API
           - proto: tcp
+            ports:
+              - 3306
+              - 5672
+            group_name: monitoring
+            rule_desc: Allow access from monitoring nodes
+          - proto: tcp
             from_port: 1
             to_port: 65535
             group_name: datanode

@@ -15,6 +15,7 @@
     abiquo_db_port: 3306
     abiquo_db_from: '%'
     abiquo_jdbc_str: "{{ mariadb_list | join(',') }}"
+    abiquo_db_login_host: "{{ groups['datanodes'][0] }}"
     abiquo_db_login_pass: temporal
     abiquo_properties:
       abiquo.api.zk.serverConnection: "{{ zk_list | join(',') }}"

@@ -15,7 +15,13 @@
     abiquo_monitoring_db_port: 3306
     abiquo_monitoring_db_from: '%'
     abiquo_monitoring_jdbc_str: "{{ mariadb_list | join(',') }}"
+    abiquo_db_login_host: "{{ groups['datanodes'][0] }}"
     abiquo_db_login_pass: temporal
+    cassandra_config:
+      seed_provider:
+      - class_name: org.apache.cassandra.locator.SimpleSeedProvider
+        parameters:
+        - seeds: "{{ monitoring_list | join(',') }}"
 
   roles:
     - common
