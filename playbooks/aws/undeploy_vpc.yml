@@ -40,14 +40,6 @@
           Name: bastion
       register: bastion
 
-    - name: Delete private networks
-      ec2_vpc_subnet:
-        region: "{{ vpc_region }}"
-        vpc_id: "{{ item.vpc_id }}"
-        cidr: "{{ item.cidr_block }}"
-        state: absent
-      with_items: "{{ private_subnets.results|map(attribute='subnets')|list }}"
-
     - name: Delete Data node security group
       ec2_group:
         name: datanode
@@ -137,6 +129,14 @@
           Name: public_subnet
         state: absent
       register: public_subnet
+
+    - name: Delete private networks
+      ec2_vpc_subnet:
+        region: "{{ vpc_region }}"
+        vpc_id: "{{ item.vpc_id }}"
+        cidr: "{{ item.cidr_block }}"
+        state: absent
+      with_items: "{{ private_subnets.results|map(attribute='subnets')|list }}"
 
     - name: Delete VPC
       ec2_vpc_net:
