@@ -299,6 +299,11 @@
       pip:
         requirements: /home/ec2-user/paas-environment/requirements.txt
 
+    - name: Install playbook requirements
+      shell: ansible-galaxy install -r requirements.yml
+      args:
+        chdir: /home/ec2-user/paas-environment
+
     - name: Ansible config
       copy:
         src: ../files/ansible.cfg

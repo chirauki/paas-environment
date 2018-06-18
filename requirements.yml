@@ -1,3 +1,2 @@
 ---
-- src: git@gitlab.bcn.abiquo.com:support/ansible-abiquo.git
-  scm: git
+- src: https://github.com/abiquo/ansible-abiquo
