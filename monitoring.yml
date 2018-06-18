@@ -1,11 +1,18 @@
 ---
 - hosts: monitoring
   become: yes
+  roles:
+    - common
+
+- hosts: monitoring
+  become: yes
+  serial: 1
   vars:
     monitoring_list: '{{ groups["monitoring"] | map("regex_replace", "^(.*)$", "\1:9160") | list }}'
     mariadb_list: '{{ groups["datanodes"] | map("regex_replace", "^(.*)$", "\1:3306") | list }}'
     rabbitmq_list: '{{ groups["datanodes"] | map("regex_replace", "^(.*)$", "\1:5672") | list }}'
     abiquo_profile: monitoring
+    kairosdb_wait_for_cassandra: no
     kariosdb_cassandra_rpc_address: "{{ monitoring_list | join(',') }}"
     abiquo_monitoring_rabbitmq_addresses: "{{ rabbitmq_list | join(',') }}"
     monitoring_install_mariadb: no
@@ -18,11 +25,20 @@
     abiquo_db_login_host: "{{ groups['datanodes'][0] }}"
     abiquo_db_login_pass: temporal
     cassandra_config:
+      listen_address: "{{ ansible_default_ipv4.address }}"
+      endpoint_snitch: GossipingPropertyFileSnitch
       seed_provider:
       - class_name: org.apache.cassandra.locator.SimpleSeedProvider
         parameters:
-        - seeds: "{{ monitoring_list | join(',') }}"
+        - seeds: "{{ groups['monitoring'][0] }}"
 
   roles:
-    - common
     - abiquo
+
+  tasks:
+    - name: Wait for cluster to settle
+      shell: nodetool status | awk '/^(U|D)(N|L|J|M)/{print $1}' | sort | uniq
+      register: cassandra_status
+      until: cassandra_status.stdout == 'UN'
+      retries: 5
+      delay: 10
