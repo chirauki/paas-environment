@@ -47,25 +47,3 @@
             volume_size: 10
             delete_on_termination: yes
       register: monitoring_nodes
-
-    - name: Address of the monitoring nodes
-      debug:
-        msg: "{{ item.private_dns_name }} ({{ item.private_ip }})"
-      with_items: "{{ monitoring_nodes.tagged_instances }}"
-
-    - name: Add new instances to host group
-      add_host:
-        hostname: "{{ item.private_ip }}"
-        groupname: monitoring
-        ansible_ssh_user: centos
-        ansible_become: yes
-      with_items: "{{ monitoring_nodes.tagged_instances }}"
-
-    - name: Wait for SSH to come up
-      wait_for:
-        host: "{{ item.private_ip }}"
-        port: 22
-        delay: 10
-        timeout: 320
-        state: started
-      with_items: "{{ monitoring_nodes.tagged_instances }}"
