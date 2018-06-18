@@ -1,0 +1,146 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: False
+  tasks:
+    - name: Get vars
+      include_vars: vars.yml
+
+    - name: Locate VPC
+      ec2_vpc_net_facts:
+        filters:
+          cidr: "{{ vpc_cidr }}"
+          tag:Name: "{{ vpc_name }}"
+        region: "{{ vpc_region }}"
+      register: vpcs
+
+    - name: Locate private networks
+      ec2_vpc_subnet_facts:
+        region: "{{ vpc_region }}"
+        filters:
+          vpc-id: "{{ vpcs.vpcs[0].vpc_id }}"
+          cidr: "{{ item.value }}"
+          tag:Name: "{{ item.key }}_subnet"
+      with_dict: "{{ internal_networks }}"
+      register: private_subnets
+
+    - name: Delete bastion VM
+      ec2:
+        key_name: "{{ ssh_key_name }}"
+        instance_type: "{{ bastion_instance_type }}"
+        image: "{{ bastion_image_id }}"
+        wait: yes
+        group: management
+        region: "{{ vpc_region }}"
+        assign_public_ip: yes
+        count_tag:
+          Name: bastion
+        exact_count: 0
+        instance_tags:
+          Name: bastion
+      register: bastion
+
+    - name: Delete private networks
+      ec2_vpc_subnet:
+        region: "{{ vpc_region }}"
+        vpc_id: "{{ item.vpc_id }}"
+        cidr: "{{ item.cidr_block }}"
+        state: absent
+      with_items: "{{ private_subnets.results|map(attribute='subnets')|list }}"
+
+    - name: Delete Data node security group
+      ec2_group:
+        name: datanode
+        description: Data node access SG
+        vpc_id: "{{ vpcs.vpcs[0].vpc_id }}"
+        region: "{{ vpc_region }}"
+        state: absent
+
+    - name: Delete monitoring security group
+      ec2_group:
+        name: monitoring
+        description: Monitoring access SG
+        vpc_id: "{{ vpcs.vpcs[0].vpc_id }}"
+        region: "{{ vpc_region }}"
+        state: absent
+
+    - name: Delete API security group
+      ec2_group:
+        name: apis
+        description: Data node access SG
+        vpc_id: "{{ vpcs.vpcs[0].vpc_id }}"
+        region: "{{ vpc_region }}"
+        state: absent
+
+    - name: Delete FE node security group
+      ec2_group:
+        name: frontend
+        description: FE access SG
+        vpc_id: "{{ vpcs.vpcs[0].vpc_id }}"
+        region: "{{ vpc_region }}"
+        state: absent
+
+    - name: Delete management security group
+      ec2_group:
+        name: management
+        description: management security group
+        vpc_id: "{{ vpcs.vpcs[0].vpc_id }}"
+        region: "{{ vpc_region }}"
+        state: absent
+
+    - name: Locate public network
+      ec2_vpc_subnet:
+        vpc_id: "{{ vpcs.vpcs[0].vpc_id }}"
+        region: "{{ vpc_region }}"
+        cidr: "{{ public_subnet_cidr }}"
+        resource_tags:
+          Name: public_subnet
+      register: public_subnet
+
+    - name: Locate NAT GWs
+      ec2_vpc_nat_gateway_facts:
+        region: "{{ vpc_region }}"
+        filters:
+          subnet-id: "{{ public_subnet.subnet.id }}"
+      register: nat_gateways
+
+    - name: Delete NAT GWs
+      ec2_vpc_nat_gateway:
+        region: "{{ vpc_region }}"
+        nat_gateway_id: "{{ item.nat_gateway_id }}"
+        wait: yes
+        release_eip: yes
+        state: absent
+      with_items: "{{ nat_gateways.result }}"
+
+    - name: Delete remaining ENI
+      ec2_eni:
+        subnet_id: "{{ public_subnet.subnet.id }}"
+        region: "{{ vpc_region }}"
+        eni_id: "{{ item.network_interface_id }}"
+        force_detach: yes
+        state: absent
+      with_items: "{{ nat_gateways.result|map(attribute='nat_gateway_addresses')|list }}"
+
+    - name: Delete IGW
+      ec2_vpc_igw:
+        vpc_id: "{{ vpcs.vpcs[0].vpc_id }}"
+        region: "{{ vpc_region }}"
+        state: absent
+
+    - name: Delete VPC public subnet
+      ec2_vpc_subnet:
+        vpc_id: "{{ vpcs.vpcs[0].vpc_id }}"
+        region: "{{ vpc_region }}"
+        cidr: "{{ public_subnet_cidr }}"
+        resource_tags:
+          Name: public_subnet
+        state: absent
+      register: public_subnet
+
+    - name: Delete VPC
+      ec2_vpc_net:
+        name: "{{ vpc_name }}"
+        cidr_block: "{{ vpc_cidr }}"
+        region: "{{ vpc_region }}"
+      register: vpc

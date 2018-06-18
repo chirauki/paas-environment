@@ -1,0 +1,34 @@
+---
+ssh_key_name: mcirauqui
+vpc_name: ansible_paas_vpc
+vpc_cidr: 172.16.0.0/16
+vpc_region: eu-central-1
+public_subnet_cidr: 172.16.10.0/24
+internal_networks:
+  frontend: 172.16.100.0/24
+  db: 172.16.20.0/24
+  api_rs: 172.16.30.0/24
+
+# Bastion
+bastion_image_id: ami-43eec3a8
+bastion_instance_type: t2.medium
+
+# API
+api_count: 2
+api_image_id: ami-9a183671
+api_instance_type: t2.medium
+
+# Data nodes
+data_count: 3
+data_image_id: ami-9a183671
+data_instance_type: t2.large
+
+# Frontends
+fe_count: 2
+fe_image_id: ami-9a183671
+fe_instance_type: t2.small
+
+# Monitoring
+monitoring_count: 3
+monitoring_image_id: ami-9a183671
+monitoring_instance_type: t2.xlarge

@@ -2,20 +2,10 @@
 - hosts: localhost
   connection: local
   gather_facts: False
-  vars:
-    ssh_key_name: mcirauqui
-    vpc_name: ansible_paas_vpc
-    vpc_cidr: 172.16.0.0/16
-    vpc_region: eu-central-1
-    public_subnet_cidr: 172.16.10.0/24
-    internal_networks:
-      frontend: 172.16.100.0/24
-      db: 172.16.20.0/24
-      api_rs: 172.16.30.0/24
-    bastion_image_id: ami-43eec3a8
-    bastion_instance_type: t2.medium
-
   tasks:
+    - name: Get vars
+      include_vars: vars.yml
+
     - name: Create VPC
       ec2_vpc_net:
         name: "{{ vpc_name }}"
@@ -311,7 +301,7 @@
 
     - name: Ansible config
       copy:
-        src: files/ansible.cfg
+        src: ../files/ansible.cfg
         dest: /home/ec2-user/.ansible.cfg
         owner: ec2-user
         group: ec2-user

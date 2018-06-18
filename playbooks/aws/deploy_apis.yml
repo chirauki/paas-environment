@@ -2,19 +2,10 @@
 - hosts: localhost
   connection: local
   gather_facts: False
-  vars:
-    ssh_key_name: mcirauqui
-    vpc_name: ansible_paas_vpc
-    vpc_region: eu-central-1
-    vpc_cidr: 172.16.0.0/16
-    internal_networks:
-      db: 172.16.20.0/24
-      api_rs: 172.16.30.0/24
-    data_count: 3
-    data_image_id: ami-9a183671
-    data_instance_type: t2.large
-
   tasks:
+    - name: Get vars
+      include_vars: vars.yml
+
     - name: Locate VPC
       ec2_vpc_net:
         name: "{{ vpc_name }}"
@@ -33,42 +24,42 @@
       with_dict: "{{ internal_networks }}"
 
     - set_fact:
-        db_net: "{{ (internal_subnets.results|selectattr('item.key', 'match', 'db')|list)[0] }}"
+        api_net: "{{ (internal_subnets.results|selectattr('item.key', 'match', 'api_rs')|list)[0] }}"
 
-    - name: Deploy Data nodes VM
+    - name: Deploy API VM
       ec2:
         key_name: "{{ ssh_key_name }}"
-        instance_type: "{{ data_instance_type }}"
-        image: "{{ data_image_id }}"
+        instance_type: "{{ api_instance_type }}"
+        image: "{{ api_image_id }}"
         wait: yes
-        group: datanode
-        vpc_subnet_id: "{{ db_net.subnet.id }}"
+        group: apis
+        vpc_subnet_id: "{{ api_net.subnet.id }}"
         region: "{{ vpc_region }}"
-        exact_count: "{{ data_count }}"
+        exact_count: "{{ api_count }}"
         count_tag:
-          type: datanode
+          type: api
         instance_tags:
-          type: datanode
-          Name: datanode
+          type: api
+          Name: api
         volumes:
           - device_name: /dev/sda1
             volume_type: gp2
             volume_size: 10
             delete_on_termination: yes
-      register: datanodes
+      register: apis
 
-    - name: Address of the data nodes
+    - name: Address of the APIs
       debug:
         msg: "{{ item.private_dns_name }} ({{ item.private_ip }})"
-      with_items: "{{ datanodes.tagged_instances }}"
+      with_items: "{{ apis.tagged_instances }}"
 
     - name: Add new instances to host group
       add_host:
         hostname: "{{ item.private_ip }}"
-        groupname: datanodes
+        groupname: apis
         ansible_ssh_user: centos
         ansible_become: yes
-      with_items: "{{ datanodes.tagged_instances }}"
+      with_items: "{{ apis.tagged_instances }}"
 
     - name: Wait for SSH to come up
       wait_for:
@@ -77,4 +68,4 @@
         delay: 10
         timeout: 320
         state: started
-      with_items: "{{ datanodes.tagged_instances }}"
+      with_items: "{{ apis.tagged_instances }}"

@@ -2,19 +2,10 @@
 - hosts: localhost
   connection: local
   gather_facts: False
-  vars:
-    ssh_key_name: mcirauqui
-    vpc_name: ansible_paas_vpc
-    vpc_region: eu-central-1
-    vpc_cidr: 172.16.0.0/16
-    internal_networks:
-      db: 172.16.20.0/24
-      api_rs: 172.16.30.0/24
-    monitoring_count: 3
-    monitoring_image_id: ami-9a183671
-    monitoring_instance_type: t2.xlarge
-
   tasks:
+    - name: Get vars
+      include_vars: vars.yml
+
     - name: Locate VPC
       ec2_vpc_net:
         name: "{{ vpc_name }}"

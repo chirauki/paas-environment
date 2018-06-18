@@ -1,0 +1,6 @@
+---
+- import_playbook: undeploy_frontends.yml
+- import_playbook: undeploy_apis.yml
+- import_playbook: undeploy_monitoring.yml
+- import_playbook: undeploy_data.yml
+- import_playbook: undeploy_vpc.yml

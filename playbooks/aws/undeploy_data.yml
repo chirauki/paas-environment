@@ -2,19 +2,10 @@
 - hosts: localhost
   connection: local
   gather_facts: False
-  vars:
-    ssh_key_name: mcirauqui
-    vpc_name: ansible_paas_vpc
-    vpc_region: eu-central-1
-    vpc_cidr: 172.16.0.0/16
-    internal_networks:
-      db: 172.16.20.0/24
-      api_rs: 172.16.30.0/24
-    monitoring_count: 3
-    monitoring_image_id: ami-9a183671
-    monitoring_instance_type: t2.xlarge
-
   tasks:
+    - name: Get vars
+      include_vars: vars.yml
+
     - name: Locate VPC
       ec2_vpc_net:
         name: "{{ vpc_name }}"
@@ -35,24 +26,18 @@
     - set_fact:
         db_net: "{{ (internal_subnets.results|selectattr('item.key', 'match', 'db')|list)[0] }}"
 
-    - name: Deploy Monitoring nodes VM
+    - name: Delete Data nodes VM
       ec2:
         key_name: "{{ ssh_key_name }}"
-        instance_type: "{{ monitoring_instance_type }}"
-        image: "{{ monitoring_image_id }}"
+        instance_type: "{{ data_instance_type }}"
+        image: "{{ data_image_id }}"
         wait: yes
-        group: monitoring
+        group: datanode
         vpc_subnet_id: "{{ db_net.subnet.id }}"
         region: "{{ vpc_region }}"
         exact_count: 0
         count_tag:
-          type: monitoring
+          type: datanode
         instance_tags:
-          type: monitoring
-          Name: monitoring
-        volumes:
-          - device_name: /dev/sda1
-            volume_type: gp2
-            volume_size: 10
-            delete_on_termination: yes
-      register: monitoring_nodes
+          type: datanode
+      register: datanodes

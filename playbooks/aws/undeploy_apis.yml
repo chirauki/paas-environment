@@ -2,20 +2,10 @@
 - hosts: localhost
   connection: local
   gather_facts: False
-  vars:
-    ssh_key_name: mcirauqui
-    vpc_name: ansible_paas_vpc
-    vpc_region: eu-central-1
-    vpc_cidr: 172.16.0.0/16
-    internal_networks:
-      frontend: 172.16.100.0/24
-      db: 172.16.20.0/24
-      api_rs: 172.16.30.0/24
-    api_count: 2
-    api_image_id: ami-9a183671
-    api_instance_type: t2.medium
-
   tasks:
+    - name: Get vars
+      include_vars: vars.yml
+
     - name: Locate VPC
       ec2_vpc_net:
         name: "{{ vpc_name }}"
@@ -36,7 +26,7 @@
     - set_fact:
         api_net: "{{ (internal_subnets.results|selectattr('item.key', 'match', 'api_rs')|list)[0] }}"
 
-    - name: Deploy API VM
+    - name: Delete API VM
       ec2:
         key_name: "{{ ssh_key_name }}"
         instance_type: "{{ api_instance_type }}"

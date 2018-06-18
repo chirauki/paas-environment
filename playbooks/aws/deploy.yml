@@ -1,0 +1,6 @@
+---
+- import_playbook: deploy_vpc.yml
+- import_playbook: deploy_data.yml
+- import_playbook: deploy_monitoring.yml
+- import_playbook: deploy_apis.yml
+- import_playbook: deploy_frontend.yml
