@@ -3,13 +3,23 @@
   become: yes
   vars:
     rabbit_list: '{{ groups["datanodes"] | map("regex_replace", "^(.*)$", "\1:5672") | list }}'
-    abiquo_profile: remoteservice
+    abiquo_profile: remoteservices
     abiquo_rabbitmq_addresses: "{{ rabbit_list | join(',') }}"
     abiquo_install_services: false
     abiquo_properties:
-      abiquo.api.zk.serverConnection: "{{ zk_list | join(',') }}"
       abiquo.redis.host: "{{ groups['datanodes'][0] }}"
-
+    fw_additional_ports:
+      - "2224"
+      - "3121"
+      - "5403"
+      - "5404"
+      - "5405"
+    firewall_allowed_udp_ports:
+      - "2224"
+      - "3121"
+      - "5403"
+      - "5404"
+      - "5405"
     pacemaker_password: hunter2
     pacemaker_cluster_name: abiquo-rs
     pacemaker_cluster_options:
@@ -18,40 +28,37 @@
     pacemaker_resource_defaults:
       resource-stickiness: 100
       migration-threshold: 1
-    pacemaker_simple_resources:
-      abiquo-tomcat:
-        resource:
-          class: service
-          type: abiquo-tomcat
-      virtual-ip:
-        resource:
-          class: ocf
-          provider: heartbeat
-          type: IPaddr2
-        options:
-          ip: 172.16.30.23
-          cidr_netmask: 24
-        meta:
-          migration-threshold: 0
-        op:
-          - name: start
-            timeout: 60s
-            interval: 0s
-            on-fail: restart
-          - name: monitor
-            timeout: 60s
-            interval: 10s
-            on-fail: restart
-          - name: stop
-            timeout: 60s
-            interval: 0s
-            on-fail: restart
     pacemaker_advanced_resources:
       rs-group:
         type: group
         resources:
-          - abiquo-tomcat
-          - virtual-ip
+          abiquo-tomcat:
+            resource:
+              class: service
+              type: abiquo-tomcat
+          virtual-ip:
+            resource:
+              class: ocf
+              provider: heartbeat
+              type: IPaddr2
+            options:
+              ip: 172.16.30.23
+              cidr_netmask: 24
+            meta:
+              migration-threshold: 0
+            op:
+              - name: start
+                timeout: 60s
+                interval: 0s
+                on-fail: restart
+              - name: monitor
+                timeout: 60s
+                interval: 10s
+                on-fail: restart
+              - name: stop
+                timeout: 60s
+                interval: 0s
+                on-fail: restart
       ping-clone:
         type: clone
         resources:
@@ -77,6 +84,21 @@
   tasks:
     - name: Ensure tomcat is disabled
       service: name=abiquo-tomcat state=stopped enabled=false
+
+    ## Bugs in PCS installation in EL prevents the service from starting
+    ## We'll try to fix that
+    - name: Install ruby packages
+      yum: name={{ item }}
+      with_items:
+        - ruby-devel
+        - gcc
+        - gcc-c++
+        - make
+
+    - name: Install json gem
+      shell: gem install json
+      environment:
+        GEM_HOME: /usr/lib/pcsd/vendor/bundle/ruby
 
     - name: Setup cluster
       include_role:
