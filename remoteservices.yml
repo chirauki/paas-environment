@@ -1,0 +1,83 @@
+---
+- hosts: remoteservices
+  become: yes
+  vars:
+    rabbit_list: '{{ groups["datanodes"] | map("regex_replace", "^(.*)$", "\1:5672") | list }}'
+    abiquo_profile: remoteservice
+    abiquo_rabbitmq_addresses: "{{ rabbit_list | join(',') }}"
+    abiquo_install_services: false
+    abiquo_properties:
+      abiquo.api.zk.serverConnection: "{{ zk_list | join(',') }}"
+      abiquo.redis.host: "{{ groups['datanodes'][0] }}"
+
+    pacemaker_password: hunter2
+    pacemaker_cluster_name: abiquo-rs
+    pacemaker_cluster_options:
+      stonith-enabled: false
+      no-quorum-policy: ignore
+    pacemaker_resource_defaults:
+      resource-stickiness: 100
+      migration-threshold: 1
+    pacemaker_simple_resources:
+      abiquo-tomcat:
+        resource:
+          class: service
+          type: abiquo-tomcat
+      virtual-ip:
+        resource:
+          class: ocf
+          provider: heartbeat
+          type: IPaddr2
+        options:
+          ip: 172.16.30.23
+          cidr_netmask: 24
+        meta:
+          migration-threshold: 0
+        op:
+          - name: start
+            timeout: 60s
+            interval: 0s
+            on-fail: restart
+          - name: monitor
+            timeout: 60s
+            interval: 10s
+            on-fail: restart
+          - name: stop
+            timeout: 60s
+            interval: 0s
+            on-fail: restart
+    pacemaker_advanced_resources:
+      rs-group:
+        type: group
+        resources:
+          - abiquo-tomcat
+          - virtual-ip
+      ping-clone:
+        type: clone
+        resources:
+          ping:
+            resource:
+              class: ocf
+              provider: pacemaker
+              type: ping
+            options:
+              host_list: 172.16.30.23
+              timeout: 5
+              attempts: 3
+    pacemaker_constraints:
+      - type: colocation
+        rsc: rs-group
+        with-rsc: ping-clone
+        score: INFINITY
+
+  roles:
+    - common
+    - abiquo
+
+  tasks:
+    - name: Ensure tomcat is disabled
+      serivce: name=abiquo-tomcat state=stopped enabled=false
+
+    - name: Setup cluster
+      include_role:
+        name: devgateway.pacemaker

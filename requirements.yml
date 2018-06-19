@@ -1,3 +1,6 @@
 ---
 - src: https://github.com/abiquo/ansible-abiquo
   name: abiquo
+
+- src: https://github.com/devgateway/ansible-role-pacemaker
+  name: devgateway.pacemaker
