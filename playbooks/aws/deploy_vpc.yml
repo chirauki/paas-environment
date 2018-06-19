@@ -116,7 +116,7 @@
     - name: Create API security group
       ec2_group:
         name: apis
-        description: Data node access SG
+        description: API node access SG
         vpc_id: "{{ vpc.vpc.id }}"
         region: "{{ vpc_region }}"
         rules:
@@ -136,6 +136,36 @@
             to_port: 65535
             group_name: apis
             rule_desc: Allow access from any other API node
+
+    - name: Create RS security group
+      ec2_group:
+        name: remoteservices
+        description: Remote Services access SG
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ vpc_region }}"
+        rules:
+          - proto: tcp
+            ports:
+              - 22
+            group_name: management
+            rule_desc: allow all on port 22
+          - proto: tcp
+            ports:
+              - 8009
+              - 8010
+            group_name: apis
+            rule_desc: Tomcat access from API
+          - proto: tcp
+            ports:
+              - 8009
+              - 8010
+            group_name: frontend
+            rule_desc: Tomcat access from FE (for AM)
+          - proto: all
+            from_port: 1
+            to_port: 65535
+            group_name: remoteservices
+            rule_desc: Allow access from any other RS node
 
     - name: Create monitoring security group
       ec2_group:
@@ -225,6 +255,12 @@
               - 5672
             group_name: monitoring
             rule_desc: Allow access from monitoring nodes
+          - proto: tcp
+            ports:
+              - 6379
+              - 5672
+            group_name: remoteservices
+            rule_desc: Allow access from RS nodes
           - proto: all
             from_port: 1
             to_port: 65535

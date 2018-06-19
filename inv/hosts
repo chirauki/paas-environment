@@ -10,6 +10,8 @@ ansible_ssh_user=centos
 
 [tag_type_monitoring]
 
+[tag_type_remoteservices]
+
 [datanodes:children]
 tag_type_datanode
 
@@ -21,3 +23,6 @@ tag_type_api
 
 [monitoring:children]
 tag_type_monitoring
+
+[remoteservices:children]
+tag_type_remoteservices

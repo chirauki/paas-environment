@@ -76,7 +76,7 @@
 
   tasks:
     - name: Ensure tomcat is disabled
-      serivce: name=abiquo-tomcat state=stopped enabled=false
+      service: name=abiquo-tomcat state=stopped enabled=false
 
     - name: Setup cluster
       include_role:
