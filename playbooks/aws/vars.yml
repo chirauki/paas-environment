@@ -18,6 +18,11 @@ api_count: 2
 api_image_id: ami-9a183671
 api_instance_type: t2.medium
 
+# API
+rs_count: 2
+rs_image_id: ami-9a183671
+rs_instance_type: t2.medium
+
 # Data nodes
 data_count: 3
 data_image_id: ami-9a183671

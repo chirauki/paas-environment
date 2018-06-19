@@ -257,7 +257,7 @@
         hostname: "{{ bastion.tagged_instances[0].public_ip }}"
         groupname: management-bastion
         ansible_ssh_user: ec2-user
-        ansible_become: yes
+        become: yes
 
     - name: Wait for SSH to come up
       wait_for:
@@ -268,6 +268,7 @@
         state: started
 
 - hosts: management-bastion
+  become: yes
   tasks:
     - name: Setup sudo
       lineinfile:
