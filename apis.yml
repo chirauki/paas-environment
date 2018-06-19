@@ -19,6 +19,7 @@
     abiquo_db_login_pass: temporal
     abiquo_properties:
       abiquo.api.zk.serverConnection: "{{ zk_list | join(',') }}"
+      abiquo.redis.host: "{{ groups['datanodes'][0] }}"
 
   roles:
     - common
