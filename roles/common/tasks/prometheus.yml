@@ -1,0 +1,20 @@
+---
+- name: Configure Prometheus COPR repo
+  yum_repository:
+    name: ibotty-prometheus-exporters
+    description: Copr repo for prometheus-exporters owned by ibotty
+    file: prometheus
+    baseurl: https://copr-be.cloud.fedoraproject.org/results/ibotty/prometheus-exporters/epel-7-$basearch
+    skip_if_unavailable: yes
+    gpgcheck: yes
+    gpgkey: https://copr-be.cloud.fedoraproject.org/results/ibotty/prometheus-exporters/pubkey.gpg
+    repo_gpgcheck: no
+    enabled: yes
+
+- name: Install Prometheus packages
+  yum: "name=golang-github-prometheus-{{ item }} state=present"
+  with_items: "{{ prometheus_exporters }}"
+
+- name: Start Prometheus exporters
+  service: "name={{ item }} state=started"
+  with_items: "{{ prometheus_exporters }}"

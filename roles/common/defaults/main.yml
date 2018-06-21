@@ -1,0 +1,6 @@
+---
+prometheus_exporters:
+  - node_exporter
+default_firewall_allowed_tcp_ports:
+  - "22"
+  - "9100"

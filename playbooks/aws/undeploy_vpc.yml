@@ -56,6 +56,14 @@
         region: "{{ vpc_region }}"
         state: absent
 
+    - name: Delete RS security group
+      ec2_group:
+        name: remoteservices
+        description: Data node access SG
+        vpc_id: "{{ vpcs.vpcs[0].vpc_id }}"
+        region: "{{ vpc_region }}"
+        state: absent
+
     - name: Delete API security group
       ec2_group:
         name: apis
@@ -138,9 +146,26 @@
         state: absent
       with_items: "{{ private_subnets.results|map(attribute='subnets')|list }}"
 
+    - name: Gather RT info
+      ec2_vpc_route_table_facts:
+        region: "{{ vpc_region }}"
+        filters:
+          vpc-id: "{{ vpcs.vpcs[0].vpc_id }}"
+      register: rt_info
+
+    - debug:
+        msg: "{{ rt_info.route_tables[0] }}"
+
+    - name: Delete RTs
+      ec2_vpc_route_table:
+        vpc_id: "{{ vpcs.vpcs[0].vpc_id }}"
+        region: "{{ vpc_region }}"
+        route_table_id: "{{ item.id }}"
+      with_items: "{{ rt_info.route_tables }}"
+
     - name: Delete VPC
       ec2_vpc_net:
         name: "{{ vpc_name }}"
         cidr_block: "{{ vpc_cidr }}"
         region: "{{ vpc_region }}"
-      register: vpc
+        state: absent
