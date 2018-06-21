@@ -2,6 +2,8 @@
 ssh_args="-o ForwardAgent=yes -o ControlMaster=auto -o ControlPersist=60s"
 ansible_ssh_user=centos
 
+[tag_type_bastion]
+
 [tag_type_datanode]
 
 [tag_type_frontend]
@@ -11,6 +13,9 @@ ansible_ssh_user=centos
 [tag_type_monitoring]
 
 [tag_type_remoteservices]
+
+[bastion:children]
+tag_type_bastion
 
 [datanodes:children]
 tag_type_datanode

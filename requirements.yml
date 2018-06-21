@@ -4,3 +4,6 @@
 
 - src: https://github.com/devgateway/ansible-role-pacemaker
   name: devgateway.pacemaker
+
+- src: https://github.com/ernestas-poskus/ansible-prometheus
+  name: ansible-prometheus
