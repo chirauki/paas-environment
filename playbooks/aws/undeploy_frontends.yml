@@ -13,23 +13,27 @@
         region: "{{ vpc_region }}"
       register: vpc
 
-    - name: Locate public network
+    - name: Locate private networks
       ec2_vpc_subnet:
         vpc_id: "{{ vpc.vpc.id }}"
         region: "{{ vpc_region }}"
-        cidr: "{{ public_subnet_cidr }}"
+        cidr: "{{ item.value }}"
         resource_tags:
-          Name: public_subnet
-      register: public_subnet
+          Name: "{{ item.key }}_subnet"
+      register: internal_subnets
+      with_dict: "{{ internal_networks }}"
 
-    - name: Undeploy FE nodes VM
+    - set_fact:
+        fe_net: "{{ (internal_subnets.results|selectattr('item.key', 'match', 'frontend')|list)[0] }}"
+
+    - name: Delete FE nodes VM
       ec2:
         key_name: "{{ ssh_key_name }}"
         instance_type: "{{ fe_instance_type }}"
         image: "{{ fe_image_id }}"
         wait: yes
         group: frontend
-        vpc_subnet_id: "{{ public_subnet.subnet.id }}"
+        vpc_subnet_id: "{{ fe_net.subnet.id }}"
         region: "{{ vpc_region }}"
         exact_count: 0
         count_tag:

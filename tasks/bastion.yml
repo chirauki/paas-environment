@@ -1,0 +1,34 @@
+---
+- name: Install git
+  yum: name={{ item }} state=present
+  with_items:
+    - git
+    - python
+    - python-pip
+
+- name: Clone git repo
+  become: no
+  git:
+    repo: https://github.com/chirauki/paas-environment.git
+    dest: $HOME/paas-environment
+    version: master
+
+- name: Install requirements
+  pip:
+    requirements: "/home/{{ ansible_ssh_user }}/paas-environment/requirements.txt"
+
+- name: Install playbook requirements
+  become: no
+  shell: ansible-galaxy install -r requirements.yml
+  args:
+    chdir: $HOME/paas-environment
+
+- name: Ansible config
+  become: no
+  copy:
+    src: ../files/ansible.cfg
+    dest: $HOME/.ansible.cfg
+
+- name: Setup Prometheus
+  include_role:
+    name: ansible-prometheus

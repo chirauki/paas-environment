@@ -292,8 +292,8 @@
     - name: Add new instance to host group
       add_host:
         hostname: "{{ bastion.tagged_instances[0].public_ip }}"
-        groupname: management-bastion
-        ansible_ssh_user: ec2-user
+        groupname: bastion
+        ansible_ssh_user: centos
         become: yes
 
     - name: Wait for SSH to come up
@@ -303,3 +303,9 @@
         delay: 10
         timeout: 320
         state: started
+
+- hosts: bastion
+  become: yes
+
+  tasks:
+    - include_tasks: ../../bastion.yml

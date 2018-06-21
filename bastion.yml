@@ -2,43 +2,4 @@
   become: yes
 
   tasks:
-    - name: Setup sudo
-      lineinfile:
-        path: /etc/sudoers
-        state: absent
-        regexp: '^Defaults    env_reset$'
-
-    - name: Install git
-      yum: name={{ item }} state=present
-      with_items:
-        - git
-        - python
-        - python-pip
-
-    - name: Clone git repo
-      become: no
-      git:
-        repo: https://github.com/chirauki/paas-environment.git
-        dest: /home/ec2-user/paas-environment
-        version: master
-
-    - name: Install requirements
-      pip:
-        requirements: /home/ec2-user/paas-environment/requirements.txt
-
-    - name: Install playbook requirements
-      become: no
-      shell: ansible-galaxy install -r requirements.yml
-      args:
-        chdir: /home/ec2-user/paas-environment
-
-    - name: Ansible config
-      copy:
-        src: ../files/ansible.cfg
-        dest: /home/ec2-user/.ansible.cfg
-        owner: ec2-user
-        group: ec2-user
-
-    - name: Setup Prometheus
-      include_role:
-        name: ansible-prometheus
+    - include_tasks: tasks/bastion.yml

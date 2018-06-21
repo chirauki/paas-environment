@@ -10,7 +10,7 @@ internal_networks:
   api_rs: 172.16.30.0/24
 
 # Bastion
-bastion_image_id: ami-43eec3a8
+bastion_image_id: ami-9a183671
 bastion_instance_type: t2.medium
 
 # API
