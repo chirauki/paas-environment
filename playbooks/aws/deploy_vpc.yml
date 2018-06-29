@@ -55,7 +55,7 @@
       ec2_vpc_nat_gateway:
         subnet_id: "{{ public_subnet.subnet.id }}"
         region: "{{ vpc_region }}"
-        # client_token: abcd-12345678
+        client_token: abcd-12345678
         wait: yes
         if_exist_do_not_create: true
       register: nat_gateway
@@ -88,6 +88,19 @@
               - 22
             cidr_ip: 0.0.0.0/0
             rule_desc: allow all on port 22
+
+    - name: Prometheus server SG
+      ec2_group:
+        name: prometheus
+        description: prometheus security group
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ vpc_region }}"
+        rules:
+          - proto: tcp
+            ports:
+              - 9090
+              - 3000
+            cidr_ip: 0.0.0.0/0
 
     - name: Create FE node security group
       ec2_group:
@@ -273,7 +286,9 @@
         instance_type: "{{ bastion_instance_type }}"
         image: "{{ bastion_image_id }}"
         wait: yes
-        group: management
+        group: 
+          - management
+          - prometheus
         vpc_subnet_id: "{{ public_subnet.subnet.id }}"
         region: "{{ vpc_region }}"
         assign_public_ip: yes
@@ -283,6 +298,11 @@
         instance_tags:
           Name: bastion
           type: bastion
+        volumes:
+          - device_name: /dev/sda1
+            volume_type: gp2
+            volume_size: 10
+            delete_on_termination: yes
       register: bastion
 
     - name: Address of the bastion host
@@ -306,6 +326,5 @@
 
 - hosts: bastion
   become: yes
-
   tasks:
-    - include_tasks: ../../bastion.yml
+    - include_tasks: ../../tasks/bastion.yml

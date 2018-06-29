@@ -1,5 +1,13 @@
+---
 - hosts: bastion
   become: yes
-
+  vars:
+    prometheus_targets:
+      node:
+      - targets:
+        - localhost:9100
+        - localhost:9090
+        labels:
+          env: paas
   tasks:
     - include_tasks: tasks/bastion.yml

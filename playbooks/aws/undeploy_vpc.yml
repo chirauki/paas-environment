@@ -88,21 +88,32 @@
         region: "{{ vpc_region }}"
         state: absent
 
-    - name: Locate public network
-      ec2_vpc_subnet:
+    - name: Delete Prometheus security group
+      ec2_group:
+        name: prometheus
         vpc_id: "{{ vpcs.vpcs[0].vpc_id }}"
         region: "{{ vpc_region }}"
-        cidr: "{{ public_subnet_cidr }}"
-        resource_tags:
-          Name: public_subnet
+        state: absent
+
+    - name: Locate public network
+      ec2_vpc_subnet_facts:
+        region: "{{ vpc_region }}"
+        filters:
+          vpc-id: "{{ vpcs.vpcs[0].vpc_id }}"
+          cidr: "{{ public_subnet_cidr }}"
+          tag:Name: "public_subnet"
       register: public_subnet
 
     - name: Locate NAT GWs
       ec2_vpc_nat_gateway_facts:
         region: "{{ vpc_region }}"
         filters:
-          subnet-id: "{{ public_subnet.subnet.id }}"
+          subnet-id: "{{ public_subnet.subnets[0].id }}"
       register: nat_gateways
+      when: public_subnet.subnets | length > 0
+
+    - debug:
+        msg: "{{ nat_gateways }}"
 
     - name: Delete NAT GWs
       ec2_vpc_nat_gateway:
@@ -112,15 +123,17 @@
         release_eip: yes
         state: absent
       with_items: "{{ nat_gateways.result }}"
+      when: not nat_gateways.skipped
 
     - name: Delete remaining ENI
       ec2_eni:
-        subnet_id: "{{ public_subnet.subnet.id }}"
+        subnet_id: "{{ public_subnet.subnets[0].id }}"
         region: "{{ vpc_region }}"
         eni_id: "{{ item.network_interface_id }}"
         force_detach: yes
         state: absent
       with_items: "{{ nat_gateways.result|map(attribute='nat_gateway_addresses')|list }}"
+      when: not nat_gateways.skipped
 
     - name: Delete IGW
       ec2_vpc_igw:
@@ -151,17 +164,19 @@
         region: "{{ vpc_region }}"
         filters:
           vpc-id: "{{ vpcs.vpcs[0].vpc_id }}"
+          tag:Name: "{{ item }}"
+      with_items:
+        - public_net_rt
+        - nat_rt
       register: rt_info
-
-    - debug:
-        msg: "{{ rt_info.route_tables[0] }}"
 
     - name: Delete RTs
       ec2_vpc_route_table:
         vpc_id: "{{ vpcs.vpcs[0].vpc_id }}"
         region: "{{ vpc_region }}"
-        route_table_id: "{{ item.id }}"
-      with_items: "{{ rt_info.route_tables }}"
+        route_table_id: "{{ item.route_tables[0].id }}"
+        state: absent
+      with_items: "{{ rt_info.results }}"
 
     - name: Delete VPC
       ec2_vpc_net:

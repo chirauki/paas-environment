@@ -7,24 +7,25 @@
       include_vars: vars.yml
 
     - name: Locate VPC
-      ec2_vpc_net:
-        name: "{{ vpc_name }}"
-        cidr_block: "{{ vpc_cidr }}"
+      ec2_vpc_net_facts:
+        filters:
+          cidr: "{{ vpc_cidr }}"
+          tag:Name: "{{ vpc_name }}"
         region: "{{ vpc_region }}"
-      register: vpc
+      register: vpcs
 
     - name: Locate private networks
-      ec2_vpc_subnet:
-        vpc_id: "{{ vpc.vpc.id }}"
+      ec2_vpc_subnet_facts:
         region: "{{ vpc_region }}"
-        cidr: "{{ item.value }}"
-        resource_tags:
-          Name: "{{ item.key }}_subnet"
-      register: internal_subnets
+        filters:
+          vpc-id: "{{ vpcs.vpcs[0].vpc_id }}"
+          cidr: "{{ item.value }}"
+          tag:Name: "{{ item.key }}_subnet"
       with_dict: "{{ internal_networks }}"
+      register: private_subnets
 
     - set_fact:
-        fe_net: "{{ (internal_subnets.results|selectattr('item.key', 'match', 'frontend')|list)[0] }}"
+        fe_net: "{{ (private_subnets.results|selectattr('item.key', 'match', 'frontend')|list)[0] }}"
 
     - name: Deploy FE nodes VM
       ec2:
@@ -33,7 +34,7 @@
         image: "{{ fe_image_id }}"
         wait: yes
         group: frontend
-        vpc_subnet_id: "{{ fe_net.subnet.id }}"
+        vpc_subnet_id: "{{ fe_net.subnets[0].id }}"
         region: "{{ vpc_region }}"
         exact_count: "{{ fe_count }}"
         count_tag:

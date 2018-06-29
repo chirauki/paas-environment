@@ -1,4 +1,7 @@
 ---
+- name: Install epel
+  yum: name=epel-release state=present
+
 - name: Install git
   yum: name={{ item }} state=present
   with_items:
@@ -15,7 +18,7 @@
 
 - name: Install requirements
   pip:
-    requirements: "/home/{{ ansible_ssh_user }}/paas-environment/requirements.txt"
+    requirements: "$HOME/paas-environment/requirements.txt"
 
 - name: Install playbook requirements
   become: no
@@ -26,9 +29,13 @@
 - name: Ansible config
   become: no
   copy:
-    src: ../files/ansible.cfg
+    src: "{{ item }}"
     dest: $HOME/.ansible.cfg
+  with_first_found:
+    - ../../files/ansible.cfg
+    - ../files/ansible.cfg
+    - files/ansible.cfg
 
 - name: Setup Prometheus
   include_role:
-    name: ansible-prometheus
+    name: cloudalchemy.prometheus
